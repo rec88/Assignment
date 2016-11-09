@@ -1,0 +1,16 @@
+Requirements
+
+1-Print to file (BED format) coordinates for Build 37
+
+BED file content:
+
+Chr		Start37	End37
+
+2- Print to file (BED format) coordinates for Build 38
+
+Chr		Start38	 End38
+
+3-User prompted to select either Build37 or Build38
+
+4- Optional output to CSV file of differences between build37 and build38
+
