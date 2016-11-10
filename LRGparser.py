@@ -75,6 +75,30 @@ def bed_file(root, gene):
        #print(values)
     return exon_ranges
 
+def get_diffs(exon_ranges):
+    ref_name = gene + "_diffs.csv"
+    diff_file = open(ref_name, 'w')
+    diff_headers = ["type", "lrg_start", "lrg_end", "other_start", "other_end", "LRG_seq", "other_seq"]
+    diff_file.write(",".join(diff_headers))
+    diff_file.write("\n")
 
+    for annot_set in root.findall("./updatable_annotation/annotation_set"):
+        if annot_set.attrib.get('type')=='lrg':
+            for mapping in annot_set:
+                if mapping.tag == 'mapping':
+                    if mapping.attrib['type'] == "main_assembly":
+                       for span in mapping:
+                           for diff in span:
+                               type = diff.attrib['type']
+                               lrg_start = diff.attrib['lrg_start']
+                               lrg_end =  diff.attrib['lrg_end']
+                               other_start = diff.attrib['other_start']
+                               other_end = diff.attrib['other_end']
+                               LRG_seq = diff.attrib['lrg_sequence']
+                               other_seq = diff.attrib['other_sequence']
+                               diff_list = [type, lrg_start, lrg_end, other_start, other_end, LRG_seq, other_seq]
+                               diff_file.write(",".join(diff_list))
+                               diff_file.write("\n")
 root, gene = read_file()
 exon_ranges = bed_file(root, gene)
+get_diffs(exon_ranges)
