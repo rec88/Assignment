@@ -40,6 +40,7 @@ def bed_file(root, gene):
             for mapping in annot_set:
                 if mapping.tag == 'mapping':
                     if mapping.attrib['coord_system'] == "GRCh37.p13":
+
                         chr = mapping.attrib['other_name']
 
     for id in root.findall("./fixed_annotation/id"):
@@ -48,21 +49,22 @@ def bed_file(root, gene):
     for exon in root.findall("./fixed_annotation/transcript/exon"):
         exon_number = exon.attrib['label']
         #print(exon_number)
-        for coord_sys in exon.iterfind('coordinates[@coord_system="LRC_7"]'):
-            start = coord_sys.attrib['start']
-            end = coord_sys.attrib['end']
-            if end > start:
-                #coords = [start, end]
-                bed_list = [chr, start, end]
-                build37bed.write("\t".join(bed_list))
-                build37bed.write("\n")
-            elif end <= start:
-                print ("error: end coord is not greater than start")
+        for coord_sys in exon:
+            if (coord_sys.attrib['coord_system']) == "LRG_7":
+                start=(coord_sys.attrib['start'])
+                end = coord_sys.attrib['end']
+                if end > start:
+                    #coords = [start, end]
+                    bed_list = [chr, start, end]
+                    build37bed.write("\t".join(bed_list))
+                    build37bed.write("\n")
+                elif end <= start:
+                    print ("error: end coord is not greater than start")
         exon_ranges[range(int(start), int(end))] = exon_number
 
-    #for keys, values in exon_ranges.items():
-    #    print(keys)
-    #    print(values)
+    for keys, values in exon_ranges.items():
+       print(keys)
+       print(values)
     return exon_ranges
 
 
