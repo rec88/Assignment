@@ -3,12 +3,11 @@ created: November 2016
 
 @authors: Laura Carreto, Rosie Coates-Brown
 
-usage: python LRGparser.py --gene --build --difference --info
+usage: python LRGparser.py --gene --difference --info
 
 --gene = name of LRG file without .xml suffix
---build = bedifile for the specified build will be output
---difference = this flag is optional, including it will trigger the output of a csv file containing the differences between 37 and 38
---info = optional flag, including it will cause a text file of gene information to be produced. This file contains information on synonyms, lsdb, long gene name
+--difference = (y/n) y will trigger the output of a csv file containing the differences between 37 and 38, n will suppress this
+--info = (y/n) y will cause a text file of gene information to be produced, n will suppress this file. This file contains information on synonyms, lsdb, long gene name
 
 """
 
@@ -113,7 +112,6 @@ def get_diffs(exon_ranges):
 
 
     """
-
     diffexons={}
     lrgstartlist=[]
     lrgendlist=[]
@@ -164,4 +162,5 @@ def get_diffs(exon_ranges):
 
 root, gene = read_file()
 exon_ranges = bed_file(root, gene)
+
 get_diffs(exon_ranges)
