@@ -1,3 +1,17 @@
+"""
+created: November 2016
+
+@authors: Laura Carreto, Rosie Coates-Brown
+
+usage: python LRGparser.py --gene --build --difference --info
+
+--gene = name of LRG file without .xml suffix
+--build = bedifile for the specified build will be output
+--difference = this flag is optional, including it will trigger the output of a csv file containing the differences between 37 and 38
+--info = optional flag, including it will cause a text file of gene information to be produced. This file contains information on synonyms, lsdb, long gene name
+
+"""
+
 try:
     import xml.etree.ElementTree as ET
 except ImportError:
@@ -8,8 +22,11 @@ import sys, os
 def read_file():
     """
     read in the LRG.xml file
-    test: does the file exist ***dev note how do we handle the exceptions error correctly?***
-    test: does fixed annotation ID match the user selected lrg file?
+    test: does the file exist
+
+    input: sys.argv[1]
+    returns: root(ElementTree root node), gene(user input string variable)
+
     """
     gene = sys.argv[1]
     file_name = gene+'.xml'
@@ -27,8 +44,14 @@ def read_file():
 
 def bed_file(root, gene):
     """
-    grabs the chromosome number, the exon number, the exon start and stop coordinates
-    creates a dict with the exon ranges as keys, the exon_number as the value
+    produces a bed file containing the chromosome, genomic start position and genomic end position
+
+    test: is start position bigger than end position?
+    test: is the calculate chromosome position between the given chromosome start and end?
+
+    parameters: root(ElementTree root node), gene(user input string variable)
+
+    returns: exon_ranges(dict)
     """
     exon_ranges={}
     ref_name = gene+"_37.bed"
@@ -38,10 +61,13 @@ def bed_file(root, gene):
         if annot_set.attrib.get('type')=='lrg':
             for mapping in annot_set:
                 if mapping.tag == 'mapping':
-                    #if mapping.attrib['coord_system'] == "GRCh37.p13":
+
                     if mapping.attrib['type'] == "main_assembly":
-                        ref_start = mapping.attrib['other_start']
-                        offset = int(ref_start) - 1
+                        ref_start = int(mapping.attrib['other_start'])
+                        #print (ref_start)
+                        ref_end = int(mapping.attrib['other_end'])
+                        #print(ref_end)
+                        offset = (ref_start) - 1
                         offset_int = int(offset)
                         #print (offset)
                         chr = mapping.attrib['other_name']
@@ -51,19 +77,24 @@ def bed_file(root, gene):
 
     for exon in root.findall("./fixed_annotation/transcript/exon"):
         exon_number = exon.attrib['label']
-        #print(exon_number)
+
         for coord_sys in exon:
             if (coord_sys.attrib['coord_system']) == id_tag:
                 start=(coord_sys.attrib['start'])
                 start_int = int(start)
                 end = coord_sys.attrib['end']
                 end_int = int(end)
-                #exon_range = range(start_int,end_int)
-                #print (exon_range)
+
                 gen_st = str(start_int + offset_int)
+                gen_st_int = int(gen_st)
                 gen_end = str(end_int + offset_int)
+                gen_end_int = int(gen_end)
+
+                assert (gen_st_int > ref_start or gen_st_int < ref_end), "claculated genomic position of exon start is not within given  genomic coordinates"
+                assert (gen_end_int > ref_start or gen_end_int < ref_end), "claculated genomic position of exon end is not within given  genomic coordinates"
+
                 if gen_end > gen_st:
-                    #coords = [start, end]
+
                     bed_list = [chr, gen_st, gen_end]
                     build37bed.write("\t".join(bed_list))
                     build37bed.write("\n")
@@ -71,12 +102,18 @@ def bed_file(root, gene):
                     print ("error: end coord is not greater than start")
         exon_ranges[exon_number]=[start_int,end_int]
 
-    #for keys, values in exon_ranges.items():
-       #print(keys)
-       #print(values)
+
     return exon_ranges
 
 def get_diffs(exon_ranges):
+    """
+    produces a csv file of the differences in the gene between build 37 and build 38
+
+    parameters: exon_ranges(dict)
+
+
+    """
+
     diffexons={}
     lrgstartlist=[]
     lrgendlist=[]
