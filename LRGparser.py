@@ -53,7 +53,7 @@ def bed_file(root, gene):
         exon_number = exon.attrib['label']
         #print(exon_number)
         for coord_sys in exon:
-            if (coord_sys.attrib['coord_system']) == "LRG_7":
+            if (coord_sys.attrib['coord_system']) == id_tag:
                 start=(coord_sys.attrib['start'])
                 start_int = int(start)
                 end = coord_sys.attrib['end']
@@ -77,6 +77,9 @@ def bed_file(root, gene):
     return exon_ranges
 
 def get_diffs(exon_ranges):
+    diffexons={}
+    lrgstartlist=[]
+    lrgendlist=[]
     ref_name = gene + "_diffs.csv"
     diff_file = open(ref_name, 'w')
     diff_headers = ["type", "lrg_start", "lrg_end", "other_start", "other_end", "LRG_seq", "other_seq"]
@@ -90,25 +93,28 @@ def get_diffs(exon_ranges):
                     if mapping.attrib['type'] == "main_assembly":
                        for span in mapping:
                            for diff in span:
-                               type = diff.attrib['type']
+                               typeattrib = diff.attrib['type']
                                lrg_start = int(diff.attrib['lrg_start'])
+                               lrgstartlist.append(lrg_start)
                                lrg_end =  int(diff.attrib['lrg_end'])
                                other_start = int(diff.attrib['other_start'])
                                other_end = int(diff.attrib['other_end'])
                                LRG_seq = diff.attrib['lrg_sequence']
                                other_seq = diff.attrib['other_sequence']
-                               for key, value in exon_ranges.items():
-                                   print(key)
-                                   print("\t")
-                                   print(value[0])
-                                   print("\t")
-                                   print(value[1])
-                                   #if lrg_start >= value[0] and lrg_start <= value[1]:
-                                        #print (key)
+                           for pos in lrgstartlist:
+                                print (pos)
+                                for key, value in exon_ranges.items():
+                                    if pos >= value[0] and pos <= value[1]:
+                                        diffexons[pos]=[key]
+                                    else:
+                                        diffexons[pos] = ['intronic']
+    for k,v in diffexons.items():
+        print(k)
+        print(v)
                                 #csv file doesn't work as all variables are integers- remove int and it will be fine
-                               #diff_list = [type, lrg_start, lrg_end, other_start, other_end, LRG_seq, other_seq]
-                               #diff_file.write(",".join(diff_list))
-                               #diff_file.write("\n")
+                                #diff_list = [type, lrg_start, lrg_end, other_start, other_end, LRG_seq, other_seq]
+                                #diff_file.write(",".join(diff_list))
+                                # diff_file.write("\n")
 
 
 
