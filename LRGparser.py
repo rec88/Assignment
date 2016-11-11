@@ -181,50 +181,50 @@ def get_annotations(gene):
    Write_csv (annot_headers, annot_file)
 
 #loop through LRG file to get annotations into annotation_list; one list for each overlapping gene (if existing)
-    for gene in root.findall("./updatable_annotation/annotation_set[@type='ncbi']/features/gene"):
+   for gene in root.findall("./updatable_annotation/annotation_set[@type='ncbi']/features/gene"):
         annotation_list=[]
         
         if gene.attrib.get('source')=='NCBI-Gene':
             NCBI = gene.attrib['accession']
             #print (NCBI)
             annotation_list.append(NCBI)
-            else: #in case no NCBI accession
+        else: #in case no NCBI accession
             annotation_list.append('')
             
-            for leaf in gene:
-                if leaf.tag == 'symbol':
+        for leaf in gene:
+            if leaf.tag == 'symbol':
                     
-                    if leaf.attrib.get('source')=='HGNC':
-                        HGNC = leaf.attrib['name']
-                        annotation_list.append(HGNC)
+                if leaf.attrib.get('source')=='HGNC':
+                    HGNC = leaf.attrib['name']
+                    annotation_list.append(HGNC)
                         #print (HGNC)
-                        else:#in case no HGNC name
-                        annotation_list.append('')
+                else:#in case no HGNC name
+                    annotation_list.append('')
                         
-                        #create a synonym list 
-                        synonym_list=[]
-                        for synonym in leaf:
-                            synonym_list.append(synonym.text)
-                            #print ('synonym list= ', synonym_list)
+                    #create a synonym list
+                synonym_list=[]
+                for synonym in leaf:
+                    synonym_list.append(synonym.text)
+                    #print ('synonym list= ', synonym_list)
                             
-                            if leaf.tag == 'coordinates':
-                                LRG_start = leaf.attrib['start']
-                                LRG_end = leaf.attrib['end']
-                                Strand = leaf.attrib['strand']
+            if leaf.tag == 'coordinates':
+                LRG_start = leaf.attrib['start']
+                LRG_end = leaf.attrib['end']
+                Strand = leaf.attrib['strand']
                                 
-                                annotation_list.append(LRG_start)
-                                annotation_list.append(LRG_end)
-                                annotation_list.append(Strand) 
-                                #print (LRG_start+'-'+LRG_end+'; strand='+Strand)
+                annotation_list.append(LRG_start)
+                annotation_list.append(LRG_end)
+                annotation_list.append(Strand)
+                #print (LRG_start+'-'+LRG_end+'; strand='+Strand)
                                 
-                                if leaf.tag == 'long_name':
-                                    ln = leaf.text
-                                    annotation_list.append(ln)
+            if leaf.tag == 'long_name':
+                ln = leaf.text
+                annotation_list.append(ln)
                                     
-                                    annotation_list.append(synonym_list)
-                                    #print (annotation_list)
+                annotation_list.append(synonym_list)
+                #print (annotation_list)
                                     
-                                    Write_csv (annotation_list, annot_file)
+                Write_csv (annotation_list, annot_file)
 
 
 
