@@ -7,7 +7,7 @@ usage: python LRGparser.py --gene --difference --info
 
 --gene = name of LRG file without .xml suffix
 --difference = (y/n) y will trigger the output of a csv file containing the differences between 37 and 38, n will suppress this
---info = (y/n) y will cause a text file of gene information to be produced, n will suppress this file. This file contains information on synonyms, lsdb, long gene name
+--annotations = (y/n) y will cause a text file of gene information to be produced, n will suppress this file. This file contains information on synonyms, lsdb, long gene name
 
 """
 
@@ -66,8 +66,7 @@ def bed_file(root, gene):
     returns: exon_ranges(dict)
     """
     exon_ranges={}
-    ref_name = gene+"_37.bed"
-    build37bed = open(ref_name, 'w')
+
 
     for annot_set in root.findall("./updatable_annotation/annotation_set"):
         if annot_set.attrib.get('type')=='lrg':
@@ -87,32 +86,37 @@ def bed_file(root, gene):
     for id in root.findall("./fixed_annotation/id"):
         id_tag = id.text
 
-    for exon in root.findall("./fixed_annotation/transcript/exon"):
-        exon_number = exon.attrib['label']
+    for transcript in root.findall("./fixed_annotation/transcript"):
+        trans_num =  (transcript.attrib['name'])
+        ref_name = gene + "_" + trans_num + ".bed"
+        build37bed = open(ref_name, 'w')
+        for exon in transcript:
+            if exon.tag == 'exon':
+                exon_number =  (exon.attrib['label'])
 
-        for coord_sys in exon:
-            if (coord_sys.attrib['coord_system']) == id_tag:
-                start=(coord_sys.attrib['start'])
-                start_int = int(start)
-                end = coord_sys.attrib['end']
-                end_int = int(end)
+                for coord_sys in exon:
+                    if (coord_sys.attrib['coord_system']) == id_tag:
+                        start=(coord_sys.attrib['start'])
+                        start_int = int(start)
+                        end = coord_sys.attrib['end']
+                        end_int = int(end)
 
-                gen_st = str(start_int + offset_int)
-                gen_st_int = int(gen_st)
-                gen_end = str(end_int + offset_int)
-                gen_end_int = int(gen_end)
+                        gen_st = str(start_int + offset_int)
+                        gen_st_int = int(gen_st)
+                        gen_end = str(end_int + offset_int)
+                        gen_end_int = int(gen_end)
 
-                assert (gen_st_int > ref_start or gen_st_int < ref_end), "claculated genomic position of exon start is not within given  genomic coordinates"
-                assert (gen_end_int > ref_start or gen_end_int < ref_end), "claculated genomic position of exon end is not within given  genomic coordinates"
+                        assert (gen_st_int > ref_start or gen_st_int < ref_end), "claculated genomic position of exon start is not within given  genomic coordinates"
+                        assert (gen_end_int > ref_start or gen_end_int < ref_end), "claculated genomic position of exon end is not within given  genomic coordinates"
 
-                if gen_end > gen_st:
+                        if gen_end > gen_st:
 
-                    bed_list = [chr, gen_st, gen_end]
-                    build37bed.write("\t".join(bed_list))
-                    build37bed.write("\n")
-                elif gen_end <= gen_st:
-                    print ("error: end coord is not greater than start")
-        exon_ranges[exon_number]=[start_int,end_int]
+                            bed_list = [chr, gen_st, gen_end]
+                            build37bed.write("\t".join(bed_list))
+                            build37bed.write("\n")
+                        elif gen_end <= gen_st:
+                            print ("error: end coord is not greater than start")
+                exon_ranges[exon_number]=[start_int,end_int]
 
 
     return exon_ranges
@@ -131,7 +135,7 @@ def get_diffs(exon_ranges):
     difflist=[]
     ref_name = gene + "_diffs.csv"
     diff_file = open(ref_name, 'w')
-    diff_headers = ["type", "lrg_start", "lrg_end", "other_start", "other_end", "LRG_seq", "other_seq"]
+    diff_headers = ["position", "type", "lrg_start", "lrg_end", "other_start", "other_end", "LRG_seq", "other_seq"]
     diff_file.write(",".join(diff_headers))
     diff_file.write("\n")
 
@@ -140,6 +144,8 @@ def get_diffs(exon_ranges):
             for mapping in annot_set:
                 if mapping.tag == 'mapping':
                     if mapping.attrib['type'] == "main_assembly":
+                       ref_assem = ("reference assembly="+(mapping.attrib['coord_system']))
+                       print (ref_assem)
                        for span in mapping:
                            for diff in span:
                                lrg_start = int(diff.attrib['lrg_start'])
@@ -167,7 +173,6 @@ def get_diffs(exon_ranges):
                                        diff_file.write(",")
                                        diff_file.write(",".join(diff_list))
                                        diff_file.write("\n")
-
 
 
 def get_annotations(gene):    
@@ -230,7 +235,5 @@ def get_annotations(gene):
 
 root, gene = read_file()
 exon_ranges = bed_file(root, gene)
-
 get_diffs(exon_ranges)
-
 get_annotations(gene)
