@@ -131,8 +131,7 @@ def get_diffs(exon_ranges):
     """
     diffexons={}
     lrgstartlist=[]
-    lrgendlist=[]
-    difflist=[]
+    
     ref_name = gene + "_diffs.csv"
     diff_file = open(ref_name, 'w')
     diff_headers = ["position", "type", "lrg_start", "lrg_end", "other_start", "other_end", "LRG_seq", "other_seq"]
