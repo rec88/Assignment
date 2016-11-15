@@ -27,9 +27,9 @@ def read_file():
     returns: root(ElementTree root node), gene(user input string variable)
 
     """
-    gene = sys.argv[1]
+    gene = 'LRG_7'#sys.argv[1]
     file_name = gene+'.xml'
-    file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
+    file_path = '/home/swc/Desktop/LRGParser/'#'/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
     full_path = file_path+file_name
     try:
         tree = ET.parse(full_path)
@@ -40,15 +40,15 @@ def read_file():
 
     return root, gene
     
-def Write_csv(mylist, myfilename):
+def write_csv(mylist, myfilename, mode):
     """
     Output to CSV file from a list
     
-    Parameters: mylist (list), myfilename(string)
+    Parameters: mylist (list), myfilename(string), mode (string); the mode options used in the code are: 'a'= append, 'w'=write
     
     """
     
-    out = csv.writer(open(myfilename,"a"), quoting=csv.QUOTE_ALL)
+    out = csv.writer(open(myfilename, mode), quoting=csv.QUOTE_ALL)
     out.writerow(mylist)
         
     return
@@ -68,20 +68,16 @@ def bed_file(root, gene):
     exon_ranges={}
 
 
-    for annot_set in root.findall("./updatable_annotation/annotation_set"):
-        if annot_set.attrib.get('type')=='lrg':
-            for mapping in annot_set:
-                if mapping.tag == 'mapping':
+    for mapping in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']"):
 
-                    if mapping.attrib['type'] == "main_assembly":
-                        ref_start = int(mapping.attrib['other_start'])
-                        #print (ref_start)
-                        ref_end = int(mapping.attrib['other_end'])
-                        #print(ref_end)
-                        offset = (ref_start) - 1
-                        offset_int = int(offset)
-                        #print (offset)
-                        chr = mapping.attrib['other_name']
+        ref_start = int(mapping.attrib['other_start'])
+        #print (ref_start)
+        ref_end = int(mapping.attrib['other_end'])
+        #print(ref_end)
+        offset = (ref_start) - 1
+        offset_int = int(offset)
+        #print (offset)
+        chr = mapping.attrib['other_name']
 
     for id in root.findall("./fixed_annotation/id"):
         id_tag = id.text
@@ -132,46 +128,38 @@ def get_diffs(exon_ranges):
     diffexons={}
     lrgstartlist=[]
     
-    ref_name = gene + "_diffs.csv"
-    diff_file = open(ref_name, 'w')
+    diff_file = gene + "_diffs.csv"
     diff_headers = ["position", "type", "lrg_start", "lrg_end", "other_start", "other_end", "LRG_seq", "other_seq"]
-    diff_file.write(",".join(diff_headers))
-    diff_file.write("\n")
+    write_csv(diff_headers, diff_file, 'w') #mode 'w' to write to diff_file; truncates any file with same name in the directory
 
-    for annot_set in root.findall("./updatable_annotation/annotation_set"):
-        if annot_set.attrib.get('type')=='lrg':
-            for mapping in annot_set:
-                if mapping.tag == 'mapping':
-                    if mapping.attrib['type'] == "main_assembly":
-                       ref_assem = ("reference assembly="+(mapping.attrib['coord_system']))
-                       print (ref_assem)
-                       for span in mapping:
-                           for diff in span:
-                               lrg_start = int(diff.attrib['lrg_start'])
-                               lrgstartlist.append(lrg_start)
-                               typeattrib = diff.attrib['type']
-                               lrg_start_str = (diff.attrib['lrg_start'])
-                               lrg_end = (diff.attrib['lrg_end'])
-                               other_start = (diff.attrib['other_start'])
-                               other_end = (diff.attrib['other_end'])
-                               LRG_seq = diff.attrib['lrg_sequence']
-                               other_seq = diff.attrib['other_sequence']
+    for mapping in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']"):
 
-                               for pos in lrgstartlist:
-                                   for key, value in exon_ranges.items():
-                                       if pos >= value[0] and pos <= value[1]:
-                                           diffexons[pos] = [key]
-                                       else:
-                                            diffexons[pos] = ['intronic']
+        ref_assem = ("reference assembly="+(mapping.attrib['coord_system']))
+        print (ref_assem)
+        for span in mapping:
+            for diff in span:
+                lrg_start = int(diff.attrib['lrg_start'])
+                lrgstartlist.append(lrg_start)
+                typeattrib = diff.attrib['type']
+                lrg_start_str = (diff.attrib['lrg_start'])
+                lrg_end = (diff.attrib['lrg_end'])
+                other_start = (diff.attrib['other_start'])
+                other_end = (diff.attrib['other_end'])
+                LRG_seq = diff.attrib['lrg_sequence']
+                other_seq = diff.attrib['other_sequence']
 
-                               for k, v in diffexons.items():
-                                   if k == lrg_start:
-                                       diff_list = [typeattrib, lrg_start_str, lrg_end, other_start, other_end, LRG_seq, other_seq]
-                                       pos_str = v[0]
-                                       diff_file.write(pos_str)
-                                       diff_file.write(",")
-                                       diff_file.write(",".join(diff_list))
-                                       diff_file.write("\n")
+                for pos in lrgstartlist:
+                    for key, value in exon_ranges.items():
+                        if pos >= value[0] and pos <= value[1]:
+                            diffexons[pos] = [key]
+                        else:
+                            diffexons[pos] = ['intronic']
+
+                    for k, v in diffexons.items():
+                        if k == lrg_start:
+                            pos_str = v[0]
+                            diff_list = [pos_str, typeattrib, lrg_start_str, lrg_end, other_start, other_end, LRG_seq, other_seq]
+                            write_csv(diff_list, diff_file, 'a') #mode 'a' to append to existing file diff_file
 
 
 def get_annotations(gene):    
@@ -180,9 +168,9 @@ def get_annotations(gene):
     
    """
    #initialise file with headers
-   annot_file = gene+"_TESTannotation.csv"
+   annot_file = gene+"_annotation.csv"
    annot_headers = ['NCBI_ID','HGNC', 'LRG_start','LRG_end','Strand','Description','Synonyms' ]
-   Write_csv (annot_headers, annot_file)
+   write_csv (annot_headers, annot_file, 'w')#write mode ('w') truncates file with same name in directory to avoid appending to an old file
 
 #loop through LRG file to get annotations into annotation_list; one list for each overlapping gene (if existing)
    for gene in root.findall("./updatable_annotation/annotation_set[@type='ncbi']/features/gene"):
@@ -209,8 +197,9 @@ def get_annotations(gene):
                 synonym_list=[]
                 for synonym in leaf:
                     synonym_list.append(synonym.text)
-                    #print ('synonym list= ', synonym_list)
-                            
+                    synonym_string = ', '.join(synonym_list) #convert synonym_list into string to append later into annotation_list as one element
+                #print ('synonyms= ', synonym_string)
+                    
             if leaf.tag == 'coordinates':
                 LRG_start = leaf.attrib['start']
                 LRG_end = leaf.attrib['end']
@@ -225,10 +214,10 @@ def get_annotations(gene):
                 ln = leaf.text
                 annotation_list.append(ln)
                                     
-                annotation_list.append(synonym_list)
+                annotation_list.append(synonym_string)
                 #print (annotation_list)
                                     
-                Write_csv (annotation_list, annot_file)
+                write_csv (annotation_list, annot_file, 'a') #mode 'a' to append to annot_file
 
 
 
