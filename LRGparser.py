@@ -27,14 +27,21 @@ def read_file():
     returns: root(ElementTree root node), gene(user input string variable)
 
     """
-    gene = 'LRG_7'#sys.argv[1]
+    gene = sys.argv[1]
+    ######### alternative input (tested);
+    #gene = raw_input ('Please enter the name of the LRG file to be processed (for example, "LRG_7"): ')    
+    
     file_name = gene+'.xml'
-    file_path = '/home/swc/Desktop/LRGParser/'#'/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
+    file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
     full_path = file_path+file_name
+    
+    # check if required xml file exists in the directory defined in file_path
     try:
         tree = ET.parse(full_path)
     except:
         print("couldn't open file...")
+        
+    # parse xml and create root object    
     tree = ET.ElementTree(file=full_path)
     root = tree.getroot()
 
@@ -47,7 +54,7 @@ def write_csv(mylist, myfilename, mode):
     Parameters: mylist (list), myfilename(string), mode (string); the mode options used in the code are: 'a'= append, 'w'=write
     
     """
-    
+    #
     out = csv.writer(open(myfilename, mode), quoting=csv.QUOTE_ALL)
     out.writerow(mylist)
         
@@ -65,28 +72,33 @@ def bed_file(root, gene):
 
     returns: exon_ranges(dict)
     """
+    # initialise dictionary of exon ranges; format: exon = list(exon_start, exon_end)    
     exon_ranges={}
 
-
     for mapping in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']"):
-
-        ref_start = int(mapping.attrib['other_start'])
+        # for each branch, get start and end coordinates in the reference genome and chromosome number 
+    
+        ref_start = int(mapping.attrib['other_start']) # start (converted to integer)
         #print (ref_start)
-        ref_end = int(mapping.attrib['other_end'])
+        ref_end = int(mapping.attrib['other_end']) # end (converted to integer)
         #print(ref_end)
-        offset = (ref_start) - 1
-        offset_int = int(offset)
+        offset = (ref_start) - 1 # offset start to compensate for string count starting at zero
+        offset_int = int(offset) # convert offset start to integer
         #print (offset)
-        chr = mapping.attrib['other_name']
+        chr = mapping.attrib['other_name'] # chromosome
 
     for id in root.findall("./fixed_annotation/id"):
         id_tag = id.text
 
     for transcript in root.findall("./fixed_annotation/transcript"):
-        trans_num =  (transcript.attrib['name'])
-        ref_name = gene + "_" + trans_num + ".bed"
-        build37bed = open(ref_name, 'w')
+        # for each transcript, get exon coordinates into bed file
+        trans_num =  (transcript.attrib['name']) # transcript number
+        ref_name = gene + "_" + trans_num + ".bed" # define bed file name
+        
+        bedfile = open(ref_name, 'w') # open bed file
+        
         for exon in transcript:
+            #for each exon, get start and end coordinates as integers; offset lrg coordinates to get genomic coordinates 
             if exon.tag == 'exon':
                 exon_number =  (exon.attrib['label'])
 
@@ -101,19 +113,21 @@ def bed_file(root, gene):
                         gen_st_int = int(gen_st)
                         gen_end = str(end_int + offset_int)
                         gen_end_int = int(gen_end)
-
-                        assert (gen_st_int > ref_start or gen_st_int < ref_end), "claculated genomic position of exon start is not within given  genomic coordinates"
-                        assert (gen_end_int > ref_start or gen_end_int < ref_end), "claculated genomic position of exon end is not within given  genomic coordinates"
+                        
+                        #assert that exon genomic coordinates are within transcript genomic start and end coordinates
+                        assert (gen_st_int > ref_start or gen_st_int < ref_end), "calculated genomic position of exon start is not within given genomic coordinates"
+                        assert (gen_end_int > ref_start or gen_end_int < ref_end), "calculated genomic position of exon end is not within given genomic coordinates"
 
                         if gen_end > gen_st:
-
+                            # extra caution: check that genomic coordinates were correctly offset before writing to bed file
                             bed_list = [chr, gen_st, gen_end]
-                            build37bed.write("\t".join(bed_list))
-                            build37bed.write("\n")
+                            bedfile.write("\t".join(bed_list))
+                            bedfile.write("\n")
+                            
                         elif gen_end <= gen_st:
                             print ("error: end coord is not greater than start")
+                            
                 exon_ranges[exon_number]=[start_int,end_int]
-
 
     return exon_ranges
 
@@ -125,21 +139,28 @@ def get_diffs(exon_ranges):
 
 
     """
-    diffexons={}
-    lrgstartlist=[]
+    # initialise data structures
+    diffexons={} # dictionary linking differences to exon number; value defaults to 'intronic' if position do not map within exon coordinates
+    lrgstartlist=[] # list of differences' start position
     
+    # define file name for differences file and create list of column headers to write to file    
     diff_file = gene + "_diffs.csv"
     diff_headers = ["position", "type", "lrg_start", "lrg_end", "other_start", "other_end", "LRG_seq", "other_seq"]
-    write_csv(diff_headers, diff_file, 'w') #mode 'w' to write to diff_file; truncates any file with same name in the directory
+    
+    # write headers into csv file
+    write_csv(diff_headers, diff_file, 'w') # mode 'w' truncates any file with same name in the directory
 
     for mapping in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']"):
-
-        ref_assem = ("reference assembly="+(mapping.attrib['coord_system']))
-        print (ref_assem)
+        # get reference assembly id and print to console
+        ref_assem = (mapping.attrib['coord_system'])
+        print ("Reference assembly= "+ref_assem)
+        
+        # for each difference in xml, get attributes into list
         for span in mapping:
             for diff in span:
                 lrg_start = int(diff.attrib['lrg_start'])
-                lrgstartlist.append(lrg_start)
+                lrgstartlist.append(lrg_start) #for each difference, append to list of start positions
+                
                 typeattrib = diff.attrib['type']
                 lrg_start_str = (diff.attrib['lrg_start'])
                 lrg_end = (diff.attrib['lrg_end'])
@@ -149,16 +170,27 @@ def get_diffs(exon_ranges):
                 other_seq = diff.attrib['other_sequence']
 
                 for pos in lrgstartlist:
-                    for key, value in exon_ranges.items():
-                        if pos >= value[0] and pos <= value[1]:
+                    # check if start position of difference is within exon start and end coordinates
+                    # using exon = (exon_start, exon_end) dictionary; values are a list;
+                    for key, value in exon_ranges.items(): # for key, value pair in exon_ranges dictionary
+                        # for exon in exon_ranges dictionary
+                        # compare start position of difference to exon_start and exon_end coordinates                        
+                        if pos >= value[0] and pos <= value[1]: # value [0] refers to exon_start, value[1] refers to exon_end
+                        # if difference position within exon range,
+                        # add position = exon to diffexons dictionary
                             diffexons[pos] = [key]
                         else:
-                            diffexons[pos] = ['intronic']
+                            # if difference position not in exon range, 
+                            # add position = 'intronic' to diffexons dictionary
+                            diffexons[pos] = 'intronic'
 
                     for k, v in diffexons.items():
+                        # for k difference in diffexons, v is exon number or intronic location
                         if k == lrg_start:
-                            pos_str = v[0]
+                            pos_str = v
+                            # set up list with attributes for k difference
                             diff_list = [pos_str, typeattrib, lrg_start_str, lrg_end, other_start, other_end, LRG_seq, other_seq]
+                            # write diff_list content to line in csv file                          
                             write_csv(diff_list, diff_file, 'a') #mode 'a' to append to existing file diff_file
 
 
@@ -172,7 +204,8 @@ def get_annotations(gene):
    annot_headers = ['NCBI_ID','HGNC', 'LRG_start','LRG_end','Strand','Description','Synonyms' ]
    write_csv (annot_headers, annot_file, 'w')#write mode ('w') truncates file with same name in directory to avoid appending to an old file
 
-#loop through LRG file to get annotations into annotation_list; one list for each overlapping gene (if existing)
+   # loop through LRG file to get annotations into annotation_list
+   # one list for each overlapping gene (if present)
    for gene in root.findall("./updatable_annotation/annotation_set[@type='ncbi']/features/gene"):
         annotation_list=[]
         
@@ -183,35 +216,41 @@ def get_annotations(gene):
         else: #in case no NCBI accession
             annotation_list.append('')
             
-        for leaf in gene:
-            if leaf.tag == 'symbol':
+        for branch in gene:
+            if branch.tag == 'symbol':
                     
-                if leaf.attrib.get('source')=='HGNC':
-                    HGNC = leaf.attrib['name']
+                if branch.attrib.get('source')=='HGNC':
+                    HGNC = branch.attrib['name']
                     annotation_list.append(HGNC)
-                        #print (HGNC)
+                    #print (HGNC)
+                    
+                    #create a synonyms list
+                    synonym_list=[]
+                    for synonym in branch:
+                        synonym_list.append(synonym.text)
+                        
+                    synonym_string = ', '.join(synonym_list) #convert synonym_list into string to append later into annotation_list as one element
+                    #print ('synonyms= ', synonym_string)
+                   
+                    
+                    
                 else:#in case no HGNC name
                     annotation_list.append('')
-                        
-                    #create a synonym list
-                synonym_list=[]
-                for synonym in leaf:
-                    synonym_list.append(synonym.text)
-                    synonym_string = ', '.join(synonym_list) #convert synonym_list into string to append later into annotation_list as one element
-                #print ('synonyms= ', synonym_string)
+                    synonym_string = ''
+
                     
-            if leaf.tag == 'coordinates':
-                LRG_start = leaf.attrib['start']
-                LRG_end = leaf.attrib['end']
-                Strand = leaf.attrib['strand']
+            if branch.tag == 'coordinates':
+                LRG_start = branch.attrib['start']
+                LRG_end = branch.attrib['end']
+                Strand = branch.attrib['strand']
                                 
                 annotation_list.append(LRG_start)
                 annotation_list.append(LRG_end)
                 annotation_list.append(Strand)
                 #print (LRG_start+'-'+LRG_end+'; strand='+Strand)
                                 
-            if leaf.tag == 'long_name':
-                ln = leaf.text
+            if branch.tag == 'long_name':
+                ln = branch.text
                 annotation_list.append(ln)
                                     
                 annotation_list.append(synonym_string)
@@ -219,9 +258,16 @@ def get_annotations(gene):
                                     
                 write_csv (annotation_list, annot_file, 'a') #mode 'a' to append to annot_file
 
+# execute functions to read xml file and create bed file, differences file and annotation file
 
-
+# read xml; function returns root object and variable with gene name
 root, gene = read_file()
-exon_ranges = bed_file(root, gene)
-get_diffs(exon_ranges)
+
+# create bed file and return dictionary of exon ranges
+exon_ranges = bed_file(root, gene) 
+
+# create csv file with sequence differences
+get_diffs(exon_ranges) 
+
+# create csv file with annotations for overlaping genes and respective synonyms
 get_annotations(gene)
