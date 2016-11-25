@@ -78,14 +78,28 @@ def bed_file(root, gene):
     for mapping in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']"):
         # for each branch, get start and end coordinates in the reference genome and chromosome number 
     
+        chr = mapping.attrib['other_name'] # chromosome
+        #print (chr)
         ref_start = int(mapping.attrib['other_start']) # start (converted to integer)
         #print (ref_start)
         ref_end = int(mapping.attrib['other_end']) # end (converted to integer)
         #print(ref_end)
-        offset = (ref_start) - 1 # offset start to compensate for string count starting at zero
-        offset_int = int(offset) # convert offset start to integer
-        #print (offset)
-        chr = mapping.attrib['other_name'] # chromosome
+        
+        # get strand to account for + or - strand when converting exon lrg coordinates to genomic coordinates
+        for mapping_span in mapping:  
+            strand = mapping_span.attrib['strand']
+            print (gene+' is coded in strand '+ strand)
+        
+        if strand == '1':
+            offset = (ref_start) - 1 # offset start to compensate for string count
+            offset_int = int(offset) # convert offset start to integer
+            #print (offset)
+            
+        elif strand == '-1':#WORK IN PROGRESS; no difference at the moment for + or - strand
+            offset = (ref_start) - 1 # modify 
+            offset_int = int(offset) # modify
+            #print (offset)
+
 
     for id in root.findall("./fixed_annotation/id"):
         id_tag = id.text
@@ -172,24 +186,28 @@ def get_diffs(exon_ranges):
                 for pos in lrgstartlist:
                     # check if start position of difference is within exon start and end coordinates
                     # using exon = (exon_start, exon_end) dictionary; values are a list;
-                    for key, value in exon_ranges.items(): # for key, value pair in exon_ranges dictionary
+                    for key, value in exon_ranges.items(): # for key, value pair in exon_ranges dictionary                     
                         # for exon in exon_ranges dictionary
-                        # compare start position of difference to exon_start and exon_end coordinates                        
+                        # compare pos to exon_start and exon_end coordinates in all exons                       
                         if pos >= value[0] and pos <= value[1]: # value [0] refers to exon_start, value[1] refers to exon_end
-                        # if difference position within exon range,
-                        # add position = exon to diffexons dictionary
-                            diffexons[pos] = [key]
+                        # if pos within exon range,
+                        # add pos = exon to diffexons dictionary
+                            diffexons[pos] = 'exon '+str(key)
+                            
                         else:
-                            # if difference position not in exon range, 
-                            # add position = 'intronic' to diffexons dictionary
-                            diffexons[pos] = 'intronic'
+                            next
 
-                    for k, v in diffexons.items():
-                        # for k difference in diffexons, v is exon number or intronic location
-                        if k == lrg_start:
-                            pos_str = v
+                    # if pos not in exons, it is not in diffexons yet
+                    # must be added to diffexons as 'intronic'
+                    if pos not in diffexons.keys():
+                        diffexons[pos] = 'intronic'
+
+                    for position, location in diffexons.items():
+                        # for position in diffexons, location is either the exon number or 'intronic'
+                        if position == lrg_start:
+                            #pos_str = v
                             # set up list with attributes for k difference
-                            diff_list = [pos_str, typeattrib, lrg_start_str, lrg_end, other_start, other_end, LRG_seq, other_seq]
+                            diff_list = [location, typeattrib, lrg_start_str, lrg_end, other_start, other_end, LRG_seq, other_seq]
                             # write diff_list content to line in csv file                          
                             write_csv(diff_list, diff_file, 'a') #mode 'a' to append to existing file diff_file
 
@@ -201,7 +219,7 @@ def get_annotations(gene):
    """
    #initialise file with headers
    annot_file = gene+"_annotation.csv"
-   annot_headers = ['NCBI_ID','HGNC', 'LRG_start','LRG_end','Strand','Description','Synonyms' ]
+   annot_headers = ['NCBI_ID','HGNC_symbol', 'LRG_start','LRG_end','Strand','Description','Synonyms' ]
    write_csv (annot_headers, annot_file, 'w')#write mode ('w') truncates file with same name in directory to avoid appending to an old file
 
    # loop through LRG file to get annotations into annotation_list
