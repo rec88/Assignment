@@ -1,13 +1,27 @@
 """
+LRGparser.py
+
 created: November 2016
+
+Tested on python versions 3.5.2 and 
 
 @authors: Laura Carreto, Rosie Coates-Brown
 
-usage: python LRGparser.py --gene --difference --info
+usage: python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False]
 
---gene = name of LRG file without .xml suffix
---difference = (y/n) y will trigger the output of a csv file containing the differences between 37 and 38, n will suppress this
---annotations = (y/n) y will cause a text file of gene information to be produced, n will suppress this file. This file contains information on synonyms, lsdb, long gene name
+required parameters:
+-g, --gene	[name of LRG file without .xml suffix]
+
+optional parameters:
+-h, --help shows this message and quits
+-d, --diff, --difference [True/False] triggers or supresses the output of [LRG]_diffs.csv
+-a, --annotations = [True/False] triggers or suppresses [LRG]_annotation.csv
+
+output:
+
+[LRG]_t1.bed: a tab separated bed file containing the chromosome number, exon start position, exon end position  
+[LRG]_diffs.csv: a csv file containing the differences between 37 and 38, False will suppress this
+[LRG]_annotation.csv: a csv file of gene information including synonyms, lsdb, long gene name
 
 """
 
@@ -15,23 +29,22 @@ try:
     import xml.etree.ElementTree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
-import sys, os, csv
+import sys, os, csv, getopt
 
 
-def read_file():
+def read_file(genein):
     """
     read in the LRG.xml file
     test: does the file exist
 
-    input: sys.argv[1]
+    parameters: genein(string returned from command line arguments)
     returns: root(ElementTree root node), gene(user input string variable)
 
     """
-    gene = sys.argv[1]
-    ######### alternative input (tested);
-    #gene = raw_input ('Please enter the name of the LRG file to be processed (for example, "LRG_7"): ')    
+    gene = genein
     
     file_name = gene+'.xml'
+    #file_path = '/home/swc/Desktop/LRGParser/'
     file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
     full_path = file_path+file_name
     
@@ -39,7 +52,9 @@ def read_file():
     try:
         tree = ET.parse(full_path)
     except:
-        print("couldn't open file...")
+        print("couldn't open file... check you have supplied an LRG file name without extension, and file is an XML")
+        usage()
+        sys.exit(2)
         
     # parse xml and create root object    
     tree = ET.ElementTree(file=full_path)
@@ -145,11 +160,11 @@ def bed_file(root, gene):
 
     return exon_ranges
 
-def get_diffs(exon_ranges):
+def get_diffs(exon_ranges, gene, root):
     """
     produces a csv file of the differences in the gene between build 37 and build 38
 
-    parameters: exon_ranges(dict)
+    parameters: exon_ranges(dict), gene(string), root(elementTree root node)
 
 
     """
@@ -167,7 +182,7 @@ def get_diffs(exon_ranges):
     for mapping in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']"):
         # get reference assembly id and print to console
         ref_assem = (mapping.attrib['coord_system'])
-        print ("Reference assembly= "+ref_assem)
+        print ("Reference assembly= "+ref_assem +" so differences are with respect to this bulid")
         
         # for each difference in xml, get attributes into list
         for span in mapping:
@@ -212,9 +227,11 @@ def get_diffs(exon_ranges):
                             write_csv(diff_list, diff_file, 'a') #mode 'a' to append to existing file diff_file
 
 
-def get_annotations(gene):    
+def get_annotations(gene, root):    
    """
     Outputs gene annotations, including overlapping genes and respective gene name synonyms, to CSV file
+    
+    parameters: gene(string), root(elementTree root node)
     
    """
    #initialise file with headers
@@ -276,16 +293,73 @@ def get_annotations(gene):
                                     
                 write_csv (annotation_list, annot_file, 'a') #mode 'a' to append to annot_file
 
-# execute functions to read xml file and create bed file, differences file and annotation file
 
-# read xml; function returns root object and variable with gene name
-root, gene = read_file()
+def main():
+	"""
+	Parses and handles command line arguments. Calls the other functions in the script.
+	Functions produce a bedfile, an optional annotation file and an optional information file
+	"""
+	
+	#parses the command line arguments to check that all flags passed are valid, exits if not
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], 'hg:d:i:', ['help', 'gene=', 'difference=', 'info='])
+	except getopt.GetoptError as err:
+		print (err)
+		usage()
+		sys.exit(2)
+	#defines all parameters to allow the possibility of optional arguments
+	genein = ''
+	diff = "false"
+	info = "false"
+	for opt, arg in opts:
+		if opt == '-h':
+			print (__doc__)
+			sys.exit(2)
+		elif opt in ('-g', '--gene'):
+			genein = arg
+		elif opt in ('-d', '--difference', '-diff'):
+			diff = arg
+		elif opt in ('-i', '--information', '--info'):
+			info = arg
+		else:
+			usage()
+			sys.exit(2)
+	#checks if an LRG file name has been passed, exits if not
+	if genein == '':
+		print ('Please supply LRG file name without extension')
+		usage()
+		sys.exit(2)
+		
+	# read xml; function returns root object and variable with gene name
+	root, gene = read_file(genein)
+	# create bed file and return dictionary of exon ranges
+	exon_ranges = bed_file(root, gene)
 
-# create bed file and return dictionary of exon ranges
-exon_ranges = bed_file(root, gene) 
+	# create csv file with sequence differences
+	if diff == "True":
+		get_diffs(exon_ranges, gene, root)
+	else:
+		print ("-d = ", diff, " therefore no annotation file produced")
 
-# create csv file with sequence differences
-get_diffs(exon_ranges) 
+	# create csv file with annotations for overlaping genes and respective synonyms	
+	if info == "True":
+		get_annotations(gene, root)
+	else:
+		print ("-i is not True therefore no annotation file produced")
+	
+def usage():
+	"""
+	helpful hints about the usage of the script
+	"""
 
-# create csv file with annotations for overlaping genes and respective synonyms
-get_annotations(gene)
+	print ("usage:")
+	print ("python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False]")
+		
+#runs script if it is run as a script from the command line as opposed to as a function
+if __name__ == "__main__":
+    main()
+
+
+
+
+
