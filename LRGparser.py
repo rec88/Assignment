@@ -43,6 +43,35 @@ def read_file(genein):
     """
     gene = genein
     
+    ### check if LRG is public or pending ###
+    # create dictionary of LRG = status
+    LRG_status = {}
+    # open file with LRG status and add key=value pairs to LRG_status dictionary
+    # this file can be downloaded from http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt
+    with open('list_LRGs_GRCh38.txt', 'r') as status_file: 
+        for line in status_file:
+            split_line = line.split()
+            
+            if split_line[2] == 'modified:':             
+                last_modified = split_line[3]
+                next
+            elif split_line[1] == 'LRG_ID': # line with headers
+                next
+            else:
+                LRG_status[split_line[0]] = split_line[2]
+                #print (split_line[0]+ " = " + split_line[2])
+                
+    # inform user if LRG status is public or pending; exit parser if the latter occurs
+    status = LRG_status.get(gene, None)
+    print ("LRG status for " + gene + " : " + status)
+    print ("(last status update: " + last_modified + ")")
+    
+    if status == 'pending':
+        print ("Sorry! LRGparser does not process LRGs with 'pending' status.\n")
+        print ("To check the last status update, please go to:")
+        print ("http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt"+"\n")
+        exit (0)   
+    
     file_name = gene+'.xml'
     #file_path = '/home/swc/Desktop/LRGParser/'
     file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
@@ -100,21 +129,20 @@ def bed_file(root, gene):
         ref_end = int(mapping.attrib['other_end']) # end (converted to integer)
         #print(ref_end)
         
-        # get strand to account for + or - strand when converting exon lrg coordinates to genomic coordinates
+        # account for + or - strand when converting exon lrg coordinates to genomic coordinates
         for mapping_span in mapping:  
             strand = mapping_span.attrib['strand']
             print (gene+' is coded in strand '+ strand)
         
-        if strand == '1':
-            offset = (ref_start) - 1 # offset start to compensate for string count
-            offset_int = int(offset) # convert offset start to integer
+        if strand == '1': # CONFIRM OFFSET
+            offset = (ref_start)     # offset start and compensate for string count
+            offset_int = int(offset)     # convert offset start to integer
             #print (offset)
             
-        elif strand == '-1':#WORK IN PROGRESS; no difference at the moment for + or - strand
-            offset = (ref_start) - 1 # modify 
-            offset_int = int(offset) # modify
+        elif strand == '-1': # CONFIRM OFFSET 
+            offset = (ref_end + 1)        # offset end and compensate for string count
+            offset_int = int(offset)      # convert offset start to integer
             #print (offset)
-
 
     for id in root.findall("./fixed_annotation/id"):
         id_tag = id.text
@@ -131,34 +159,41 @@ def bed_file(root, gene):
             if exon.tag == 'exon':
                 exon_number =  (exon.attrib['label'])
 
-                for coord_sys in exon:
-                    if (coord_sys.attrib['coord_system']) == id_tag:
-                        start=(coord_sys.attrib['start'])
+                for coordinates in exon:
+                    if (coordinates.attrib['coord_system']) == id_tag:
+                        start=(coordinates.attrib['start'])
                         start_int = int(start)
-                        end = coord_sys.attrib['end']
+                        end = coordinates.attrib['end']
                         end_int = int(end)
-
-                        gen_st = str(start_int + offset_int)
-                        gen_st_int = int(gen_st)
-                        gen_end = str(end_int + offset_int)
-                        gen_end_int = int(gen_end)
                         
-                        #assert that exon genomic coordinates are within transcript genomic start and end coordinates
-                        assert (gen_st_int > ref_start or gen_st_int < ref_end), "calculated genomic position of exon start is not within given genomic coordinates"
-                        assert (gen_end_int > ref_start or gen_end_int < ref_end), "calculated genomic position of exon end is not within given genomic coordinates"
+                        exon_ranges[exon_number]=[start_int,end_int]
 
-                        if gen_end > gen_st:
-                            # extra caution: check that genomic coordinates were correctly offset before writing to bed file
-                            bed_list = [chr, gen_st, gen_end]
-                            bedfile.write("\t".join(bed_list))
-                            bedfile.write("\n")
+                        if strand == '1': 
+                            gen_start = str(start_int + offset_int)
+                            gen_start_int = int(gen_start)
+                            gen_end = str(end_int + offset_int)
+                            gen_end_int = int(gen_end)                     
+                             
+                        if strand == '-1': 
+                            gen_start = str(offset_int - end_int)
+                            gen_start_int = int(gen_start)
+                            gen_end = str(offset_int - start_int)
+                            gen_end_int = int(gen_end)
+                        
+                        # assert that exon genomic coordinates are within genomic start and end coordinates
+                        assert (gen_start_int > ref_start or gen_start_int < ref_end), "ERROR: calculated genomic position of exon start is not within given genomic coordinates"
+                        assert (gen_end_int > ref_start or gen_end_int < ref_end), "ERROR: calculated genomic position of exon end is not within given genomic coordinates"
+                        # assert that genomic coordinates for exon start are below genomic coordinates for exon end
+                        assert (gen_start_int < gen_end_int), "ERROR: calculated genomic start position is above genomic end position"
+                        
+                        bed_list = [chr, gen_start, gen_end]
+                        bedfile.write("\t".join(bed_list))
+                        bedfile.write("\n")
                             
-                        elif gen_end <= gen_st:
-                            print ("error: end coord is not greater than start")
-                            
-                exon_ranges[exon_number]=[start_int,end_int]
+                   
 
     return exon_ranges
+
 
 def get_diffs(exon_ranges, gene, root):
     """
@@ -175,14 +210,25 @@ def get_diffs(exon_ranges, gene, root):
     # define file name for differences file and create list of column headers to write to file    
     diff_file = gene + "_diffs.csv"
     diff_headers = ["position", "type", "lrg_start", "lrg_end", "other_start", "other_end", "LRG_seq", "other_seq"]
+
+    # Check if differences exist with respect to assembly GRCh38.p7
+    diff_count = 0
+    for diffs in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']/mapping_span/diff"):
+        diff_count += 1
     
+    if (diff_count == 0):
+        print ("No differences exist with respect to assembly GRCh38.p7, therefore no differences file was generated.\n")
+        return
+    else:
+        pass
+
     # write headers into csv file
     write_csv(diff_headers, diff_file, 'w') # mode 'w' truncates any file with same name in the directory
 
     for mapping in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']"):
         # get reference assembly id and print to console
         ref_assem = (mapping.attrib['coord_system'])
-        print ("Reference assembly= "+ref_assem +" so differences are with respect to this bulid")
+        print ("Reference assembly= "+ref_assem +" so differences are with respect to this build.\n")
         
         # for each difference in xml, get attributes into list
         for span in mapping:
@@ -220,7 +266,6 @@ def get_diffs(exon_ranges, gene, root):
                     for position, location in diffexons.items():
                         # for position in diffexons, location is either the exon number or 'intronic'
                         if position == lrg_start:
-                            #pos_str = v
                             # set up list with attributes for k difference
                             diff_list = [location, typeattrib, lrg_start_str, lrg_end, other_start, other_end, LRG_seq, other_seq]
                             # write diff_list content to line in csv file                          
