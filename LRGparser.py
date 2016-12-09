@@ -3,7 +3,7 @@ LRGparser.py
 
 created: November 2016
 
-Tested on python versions 3.5.2 and 2.7.8
+Tested on python versions 3.5 and 2.7
 
 @authors: Laura Carreto, Rosie Coates-Brown
 
@@ -47,14 +47,14 @@ def check_status(in_opt, version, genein):
     LRG_status = {}
     
     # open file with LRG status and add key=value pairs to LRG_status dictionary
-    #a flow control is required to deal with the difference in modules required for python 2.7.8 and python 3.5.2    
+    #a flow control is required to deal with the difference in modules required for python 2.7 and python 3.5    
     if in_opt == "url":
         print ("using list_LRGs_GRCh38.txt from: http://ftp.ebi.ac.uk/pub/databases/lrgex/")
         
-        if version == "3.5.2":
+        if version == "3.5":
             from urllib.request import urlretrieve
             status_filename, headers = urlretrieve('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt') 
-        elif version == "2.7.8":
+        elif version == "2.7":
             import urllib2
             status_filename = urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt')
     elif in_opt == "file":
@@ -123,7 +123,7 @@ def read_file(genein, in_opt, version):
     #Get LRG file form URL (again, flow control required due to different modules required to open urls for py2 and py3)   
     elif in_opt == "url":
         print ('requesting url:'+ 'http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name)
-        if version == "2.7.8":
+        if version == "2.7":
             try: # parse xml and create root object
                 tree = ET.ElementTree(file=urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name))
         
@@ -132,7 +132,7 @@ def read_file(genein, in_opt, version):
                 usage()
                 sys.exit(2)
                 
-        elif version == "3.5.2":
+        elif version == "3.5":
             from urllib.request import urlopen
             try: # parse xml and create root object
                 with urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name) as response:    
@@ -398,8 +398,9 @@ def get_annotations(gene, root):
 
 def versiontest():
     versionbool = ''
-    version =".".join(map(str, sys.version_info[:3]))
-    if version in {"3.5.2", "2.7.8"}:
+    version =".".join(map(str, sys.version_info[:2]))
+    print (version)
+    if version in {"3.5", "2.7"}:
         versionbool = 0
         print ("goodnews! you are using a compatible version of python: ", version,)
     else:
