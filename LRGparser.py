@@ -30,7 +30,7 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 import sys, os, csv, getopt
-
+import urllib2
 
 def read_file(genein):
     """
@@ -48,10 +48,14 @@ def read_file(genein):
     LRG_status = {}
     # open file with LRG status and add key=value pairs to LRG_status dictionary
     # this file can be downloaded from http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt
-    with open('list_LRGs_GRCh38.txt', 'r') as status_file: 
+    with open('list_LRGs_GRCh38.txt', 'r') as status_file:
+#OPTION URL: Get status file from URL (comment out line 51 and comment in line 54 and ADJUST IDDENTATIONS in for loop starting line 56)
+#Check further changes below to load LRG file from LRG file URL
+    #status_file = urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt') # it's a file like object and works just like a file
+
         for line in status_file:
             split_line = line.split()
-            
+                        
             if split_line[2] == 'modified:':             
                 last_modified = split_line[3]
                 next
@@ -77,16 +81,25 @@ def read_file(genein):
     file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
     full_path = file_path+file_name
     
-    # check if required xml file exists in the directory defined in file_path
+    # check if LRG file exists
     try:
         tree = ET.parse(full_path)
     except:
         print("couldn't open file... check you have supplied an LRG file name without extension, and file is an XML")
         usage()
         sys.exit(2)
-        
-    # parse xml and create root object    
+    
     tree = ET.ElementTree(file=full_path)
+    
+ #OPTION URL: Get LRG file form URL (comment out lines 85-92 and comment in lines 95-101)   
+    #try: # parse xml and create root object
+        #tree = ET.ElementTree(file=urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name))
+        
+    #except:
+        #print("Couldn't open URL with LRG file... check internet provision and that you have supplied a valid LRG gene name.")
+        #usage()
+        #sys.exit(2)
+    
     root = tree.getroot()
     
     return root, gene, file_name
