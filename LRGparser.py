@@ -237,8 +237,8 @@ def bed_file(root, gene):
                             gen_end_int = int(gen_end)
                         
                         # assert that exon genomic coordinates are within genomic start and end coordinates
-                        assert (gen_start_int > ref_start or gen_start_int < ref_end), "ERROR: calculated genomic position of exon start is not within given genomic coordinates"
-                        assert (gen_end_int > ref_start or gen_end_int < ref_end), "ERROR: calculated genomic position of exon end is not within given genomic coordinates"
+                        assert (gen_start_int >= ref_start or gen_start_int < ref_end), "ERROR: calculated genomic position of exon start is not within given genomic coordinates"
+                        assert (gen_end_int > ref_start or gen_end_int <= ref_end), "ERROR: calculated genomic position of exon end is not within given genomic coordinates"
                         # assert that genomic coordinates for exon start are below genomic coordinates for exon end
                         assert (gen_start_int < gen_end_int), "ERROR: calculated genomic start position is above genomic end position"
                         
