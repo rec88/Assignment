@@ -88,8 +88,8 @@ def read_file(genein):
     # parse xml and create root object    
     tree = ET.ElementTree(file=full_path)
     root = tree.getroot()
-
-    return root, gene
+    
+    return root, gene, file_name
     
 def write_csv(mylist, myfilename, mode):
     """
@@ -118,7 +118,8 @@ def bed_file(root, gene):
     """
     # initialise dictionary of exon ranges; format: exon = list(exon_start, exon_end)    
     exon_ranges={}
-
+    strand=''
+	
     for mapping in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']"):
         # for each branch, get start and end coordinates in the reference genome and chromosome number 
     
@@ -192,7 +193,7 @@ def bed_file(root, gene):
                             
                    
 
-    return exon_ranges
+    return exon_ranges, strand
 
 
 def get_diffs(exon_ranges, gene, root):
@@ -270,7 +271,7 @@ def get_diffs(exon_ranges, gene, root):
                             diff_list = [location, typeattrib, lrg_start_str, lrg_end, other_start, other_end, LRG_seq, other_seq]
                             # write diff_list content to line in csv file                          
                             write_csv(diff_list, diff_file, 'a') #mode 'a' to append to existing file diff_file
-
+    return diff_list
 
 def get_annotations(gene, root):    
    """
@@ -337,8 +338,22 @@ def get_annotations(gene, root):
                 #print (annotation_list)
                                     
                 write_csv (annotation_list, annot_file, 'a') #mode 'a' to append to annot_file
+                
+        return ln
 
+def versiontest():
+	versionbool = ''
+	version =".".join(map(str, sys.version_info[:3]))
+	if version in {"3.5.2", "2.7"}:
+		versionbool = 0
+	else:
+		veresionbool = 1
+		print ("friendly warning: LRGparser has not been tested on your version of python")
 
+	return versionbool
+
+	
+	
 def main():
 	"""
 	Parses and handles command line arguments. Calls the other functions in the script.
@@ -374,23 +389,26 @@ def main():
 		print ('Please supply LRG file name without extension')
 		usage()
 		sys.exit(2)
+	
+	bool = versiontest()
 		
 	# read xml; function returns root object and variable with gene name
-	root, gene = read_file(genein)
+	root, gene, filename = read_file(genein)
 	# create bed file and return dictionary of exon ranges
-	exon_ranges = bed_file(root, gene)
+	exon_ranges, strand = bed_file(root, gene)
 
 	# create csv file with sequence differences
 	if diff == "True":
-		get_diffs(exon_ranges, gene, root)
+		diff_list = get_diffs(exon_ranges, gene, root)
 	else:
 		print ("-d = ", diff, " therefore no annotation file produced")
 
 	# create csv file with annotations for overlaping genes and respective synonyms	
 	if info == "True":
-		get_annotations(gene, root)
+		last_ln = get_annotations(gene, root)
 	else:
 		print ("-i is not True therefore no annotation file produced")
+		
 	
 def usage():
 	"""
