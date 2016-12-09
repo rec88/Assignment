@@ -3,22 +3,22 @@ LRGparser.py
 
 created: November 2016
 
-Tested on python versions 3.5.2 and 
+Tested on python versions 3.5.2 and 2.7.8
 
 @authors: Laura Carreto, Rosie Coates-Brown
 
 usage: python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False]
 
 required parameters:
--g, --gene	[name of LRG file without .xml suffix]
+-g, --gene    [name of LRG file without .xml suffix]
 
 optional parameters:
 -h, --help shows this message and quits
--d, --diff, --difference [True/False] triggers or supresses the output of [LRG]_diffs.csv
+-d, --diff, --difference = [True/False] triggers or supresses the output of [LRG]_diffs.csv
 -a, --annotations = [True/False] triggers or suppresses [LRG]_annotation.csv
+-s, --source = [url/file] default is from file. Adding -s url will trigger LRGparser.py grab the xml from http://ftp.ebi.ac.uk/pub/databases/lrgex 
 
 output:
-
 [LRG]_t1.bed: a tab separated bed file containing the chromosome number, exon start position, exon end position  
 [LRG]_diffs.csv: a csv file containing the differences between 37 and 38, False will suppress this
 [LRG]_annotation.csv: a csv file of gene information including synonyms, lsdb, long gene name
@@ -30,28 +30,38 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 import sys, os, csv, getopt
-import urllib2
 
-def read_file(genein):
+
+def check_status(in_opt, version, genein):
     """
-    read in the LRG.xml file
-    test: does the file exist
-
-    parameters: genein(string returned from command line arguments)
-    returns: root(ElementTree root node), gene(user input string variable)
-
-    """
-    gene = genein
+    reads in the list_LRGs_GRCh38.txt file from file or URL and checks the status of the LRG file is public. 
+    LRGparser.py doesn't deal with pending files for data integrity
     
-    ### check if LRG is public or pending ###
+    parameters: in_opt (str from command line), version (str), (genein (str from command line))
+    returns: status (str)
+    """
+
+    gene = genein
+
     # create dictionary of LRG = status
     LRG_status = {}
+    
     # open file with LRG status and add key=value pairs to LRG_status dictionary
-    # this file can be downloaded from http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt
-    with open('list_LRGs_GRCh38.txt', 'r') as status_file:
-#OPTION URL: Get status file from URL (comment out line 51 and comment in line 54 and ADJUST IDDENTATIONS in for loop starting line 56)
-#Check further changes below to load LRG file from LRG file URL
-    #status_file = urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt') # it's a file like object and works just like a file
+    #a flow control is required to deal with the difference in modules required for python 2.7.8 and python 3.5.2    
+    if in_opt == "url":
+        print ("using list_LRGs_GRCh38.txt from: http://ftp.ebi.ac.uk/pub/databases/lrgex/")
+        
+        if version == "3.5.2":
+            from urllib.request import urlretrieve
+            status_filename, headers = urlretrieve('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt') 
+        elif version == "2.7.8":
+            import urllib2
+            status_filename = urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt')
+    elif in_opt == "file":
+        status_filename = 'list_LRGs_GRCh38.txt'
+        
+    with open(status_filename, 'r') as status_file:
+
 
         for line in status_file:
             split_line = line.split()
@@ -74,31 +84,59 @@ def read_file(genein):
         print ("Sorry! LRGparser does not process LRGs with 'pending' status.\n")
         print ("To check the last status update, please go to:")
         print ("http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt"+"\n")
-        exit (0)   
+        exit (0)
+
+    return status
+
+def read_file(genein, in_opt, version):
+    """
+    read in the LRG.xml file
+    test: does the file exist
+
+    parameters: genein(string returned from command line arguments)
+    returns: root(ElementTree root node), gene(user input string variable)
+
+    """
+    gene = genein
     
     file_name = gene+'.xml'
     #file_path = '/home/swc/Desktop/LRGParser/'
     file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
     full_path = file_path+file_name
     
-    # check if LRG file exists
-    try:
-        tree = ET.parse(full_path)
-    except:
-        print("couldn't open file... check you have supplied an LRG file name without extension, and file is an XML")
-        usage()
-        sys.exit(2)
+    #get LRG from referecnce file location
+    if in_opt == "file":
+        # check if LRG file exists
+        try:
+            tree = ET.parse(full_path)
+        except:
+            print("couldn't open file... check you have supplied an LRG file name without extension, and file is an XML")
+            usage()
+            sys.exit(2)
     
-    tree = ET.ElementTree(file=full_path)
-    
- #OPTION URL: Get LRG file form URL (comment out lines 85-92 and comment in lines 95-101)   
-    #try: # parse xml and create root object
-        #tree = ET.ElementTree(file=urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name))
+        tree = ET.ElementTree(file=full_path)
         
-    #except:
-        #print("Couldn't open URL with LRG file... check internet provision and that you have supplied a valid LRG gene name.")
-        #usage()
-        #sys.exit(2)
+    #Get LRG file form URL (again, flow control required due to different modules required to open urls for py2 and py3)   
+    elif in_opt == "url":
+        print ('requesting url:'+ 'http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name)
+        if version == "2.7.8":
+            try: # parse xml and create root object
+                tree = ET.ElementTree(file=urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name))
+        
+            except:
+                print("Couldn't open URL with LRG file... check internet provision and that you have supplied a valid LRG gene name.")
+                usage()
+                sys.exit(2)
+                
+        elif version == "3.5.2":
+            from urllib.request import urlopen
+            try: # parse xml and create root object
+                with urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name) as response:    
+                    tree = ET.ElementTree(file=response)
+            except:
+                print("Couldn't open URL with LRG file... check internet provision and that you have supplied a valid LRG gene name.")
+                usage()
+                sys.exit(2)
     
     root = tree.getroot()
     
@@ -112,7 +150,7 @@ def write_csv(mylist, myfilename, mode):
     
     """
     #
-    out = csv.writer(open(myfilename, mode), quoting=csv.QUOTE_ALL)
+    out = csv.writer(open(myfilename, mode))
     out.writerow(mylist)
         
     return
@@ -132,7 +170,7 @@ def bed_file(root, gene):
     # initialise dictionary of exon ranges; format: exon = list(exon_start, exon_end)    
     exon_ranges={}
     strand=''
-	
+    
     for mapping in root.findall("./updatable_annotation/annotation_set[@type='lrg']/mapping[@type='main_assembly']"):
         # for each branch, get start and end coordinates in the reference genome and chromosome number 
     
@@ -355,82 +393,91 @@ def get_annotations(gene, root):
         return ln
 
 def versiontest():
-	versionbool = ''
-	version =".".join(map(str, sys.version_info[:3]))
-	if version in {"3.5.2", "2.7"}:
-		versionbool = 0
-	else:
-		veresionbool = 1
-		print ("friendly warning: LRGparser has not been tested on your version of python")
+    versionbool = ''
+    version =".".join(map(str, sys.version_info[:3]))
+    if version in {"3.5.2", "2.7.8"}:
+        versionbool = 0
+        print ("goodnews! you are using a compatible version of python: ", version,)
+    else:
+        veresionbool = 1
+        print ("friendly warning: LRGparser has not been on python version ", version)
 
-	return versionbool
+    return versionbool, version
 
-	
-	
+    
+    
 def main():
-	"""
-	Parses and handles command line arguments. Calls the other functions in the script.
-	Functions produce a bedfile, an optional annotation file and an optional information file
-	"""
-	
-	#parses the command line arguments to check that all flags passed are valid, exits if not
-	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'hg:d:i:', ['help', 'gene=', 'difference=', 'info='])
-	except getopt.GetoptError as err:
-		print (err)
-		usage()
-		sys.exit(2)
-	#defines all parameters to allow the possibility of optional arguments
-	genein = ''
-	diff = "false"
-	info = "false"
-	for opt, arg in opts:
-		if opt == '-h':
-			print (__doc__)
-			sys.exit(2)
-		elif opt in ('-g', '--gene'):
-			genein = arg
-		elif opt in ('-d', '--difference', '-diff'):
-			diff = arg
-		elif opt in ('-i', '--information', '--info'):
-			info = arg
-		else:
-			usage()
-			sys.exit(2)
-	#checks if an LRG file name has been passed, exits if not
-	if genein == '':
-		print ('Please supply LRG file name without extension')
-		usage()
-		sys.exit(2)
-	
-	bool = versiontest()
-		
-	# read xml; function returns root object and variable with gene name
-	root, gene, filename = read_file(genein)
-	# create bed file and return dictionary of exon ranges
-	exon_ranges, strand = bed_file(root, gene)
+    """
+    Parses and handles command line arguments. Calls the other functions in the script.
+    Functions produce a bedfile, an optional annotation file and an optional information file
+    """
+    bool, version = versiontest()
+    
+    #parses the command line arguments to check that all flags passed are valid, exits if not
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'hg:d:i:s:', ['help', 'gene=', 'difference=', 'info='])
+    except getopt.GetoptError as err:
+        print (err)
+        usage()
+        sys.exit(2)
+    #defines all parameters to allow the possibility of optional arguments
+    genein = ''
+    diff = "false"
+    info = "false"
+    #sets input file source to reference file as default
+    in_opt = "file"
+    for opt, arg in opts:
+        if opt == '-h':
+            print (__doc__)
+            sys.exit(2)
+            
+        elif opt in ('-g', '--gene'):
+            genein = arg
+        elif opt in ('-d', '--difference', '-diff'):
+            diff = arg
+        elif opt in ('-i', '--information', '--info'):
+            info = arg
+        elif opt in ('-s', '--source'):
+            in_opt = arg
+        else:
+            usage()
+            sys.exit(2)
+    #checks if an LRG file name has been passed, exits if not
+    if genein == '':
+        print ('Please supply LRG file name without extension')
+        usage()
+        sys.exit(2)
+    
+    status = check_status(in_opt, version, genein)
+      
+    # read xml; function returns root object and variable with gene name
+    root, gene, filename = read_file(genein, in_opt, version)
+    # create bed file and return dictionary of exon ranges
+    exon_ranges, strand = bed_file(root, gene)
 
-	# create csv file with sequence differences
-	if diff == "True":
-		diff_list = get_diffs(exon_ranges, gene, root)
-	else:
-		print ("-d = ", diff, " therefore no annotation file produced")
+    # create csv file with sequence differences
+    if diff == "True":
+        diff_list = get_diffs(exon_ranges, gene, root)
+        print ("-d =", diff, " therefore differences file produced")
+    else:
+        print ("-d = ", diff, " therefore no differences file produced")
 
-	# create csv file with annotations for overlaping genes and respective synonyms	
-	if info == "True":
-		last_ln = get_annotations(gene, root)
-	else:
-		print ("-i is not True therefore no annotation file produced")
-		
-	
+    # create csv file with annotations for overlaping genes and respective synonyms    
+    if info == "True":
+        last_ln = get_annotations(gene, root)
+        print ("-i =", info, " therefore annotation file produced")
+    else:
+        print ("-i =",  info, "therefore no annotation file produced")
+        
+    
 def usage():
-	"""
-	helpful hints about the usage of the script
-	"""
+    """
+    helpful hints about the usage of the script
+    """
 
-	print ("usage:")
-	print ("python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False]")
-		
+    print ("usage:")
+    print ("python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False] -s [file/url]")
+        
 #runs script if it is run as a script from the command line as opposed to as a function
 if __name__ == "__main__":
     main()
