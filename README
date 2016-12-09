@@ -2,6 +2,8 @@ LRGparser.py
 
 a tools to parse an LRG file and produce a bed file of the exonic sequences, a csv file of the annotation for the gene and any sequence differences between GRC37 and GRC38
 
+For more details about file formats have a look at our wiki, or 
+
 created: November 2016
 
 Tested on python versions 3.5.2 and 2.7.8
