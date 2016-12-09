@@ -1,1 +1,31 @@
-An assignment to create a program to parse and LRG XML file
+LRGparser.py
+
+a tools to parse an LRG file and produce a bed file of the exonic sequences, a csv file of the annotation for the gene and any sequence differences between GRC37 and GRC38
+
+For more details about file formats have a look at our wiki, or our example output files
+
+created: November 2016
+
+Tested on python versions 3.5.2 and 2.7.8
+This script will run with python versions 3.5 and 2.7 
+
+@authors: Laura Carreto, Rosie Coates-Brown
+
+please contact for help and requests, we'll do what we can however this script is no longer under active development
+
+usage: python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False]
+
+required parameters:
+-g, --gene    [name of LRG file without .xml suffix]
+
+optional parameters:
+-h, --help shows this message and quits
+-d, --diff, --difference = [True/False] triggers or supresses the output of [LRG]_diffs.csv
+-a, --annotations = [True/False] triggers or suppresses [LRG]_annotation.csv
+-s, --source = [url/file] default is from file. Adding -s url will trigger LRGparser.py grab the xml from http://ftp.ebi.ac.uk/pub/databases/lrgex 
+
+output:
+[LRG]_t1.bed: a tab separated bed file containing the chromosome number, exon start position, exon end position  
+[LRG]_diffs.csv: a csv file containing the differences between 37 and 38, False will suppress this
+[LRG]_annotation.csv: a csv file of gene information including synonyms, lsdb, long gene name
+
