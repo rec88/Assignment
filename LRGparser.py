@@ -77,6 +77,10 @@ def check_status(in_opt, version, genein):
                 
     # inform user if LRG status is public or pending; exit parser if the latter occurs
     status = LRG_status.get(gene, None)
+    if status is None:
+        print ("no such LRG file exists")
+        exit(0)
+        
     print ("LRG status for " + gene + " : " + status)
     print ("(last status update: " + last_modified + ")")
     
