@@ -1,4 +1,4 @@
-Requirements
+examples of the files produced by this script can be found in the "examples files"
 
 1-Print to file  genomic coordinates of exons BED format; one BED file per transcript.
 
