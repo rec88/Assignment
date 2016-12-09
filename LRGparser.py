@@ -136,13 +136,13 @@ def bed_file(root, gene):
             print (gene+' is coded in strand '+ strand)
         
         if strand == '1': # CONFIRM OFFSET
-            offset = (ref_start)     # offset start and compensate for string count
-            offset_int = int(offset)     # convert offset start to integer
+            offset = (ref_start)     # offset genomic start 
+            offset_int = int(offset) # convert offset start to integer
             #print (offset)
             
         elif strand == '-1': # CONFIRM OFFSET 
-            offset = (ref_end + 1)        # offset end and compensate for string count
-            offset_int = int(offset)      # convert offset start to integer
+            offset = (ref_end)        # offset end 
+            offset_int = int(offset)  # convert offset start to integer
             #print (offset)
 
     for id in root.findall("./fixed_annotation/id"):
@@ -169,14 +169,14 @@ def bed_file(root, gene):
                         
                         exon_ranges[exon_number]=[start_int,end_int]
 
-                        if strand == '1': 
+                        if strand == '1': #CHECK Calculations
                             gen_start = str(start_int + offset_int)
                             gen_start_int = int(gen_start)
-                            gen_end = str(end_int + offset_int)
+                            gen_end = str(end_int + offset_int + 1) 
                             gen_end_int = int(gen_end)                     
                              
-                        if strand == '-1': 
-                            gen_start = str(offset_int - end_int)
+                        if strand == '-1': #CHECK Calculations
+                            gen_start = str(offset_int - end_int - 1)
                             gen_start_int = int(gen_start)
                             gen_end = str(offset_int - start_int)
                             gen_end_int = int(gen_end)
