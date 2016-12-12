@@ -3,12 +3,20 @@ LRGparser_testsuite.py
 
 created: December 2016
 
-This unit test script assumes you are using python version 3.5.2 
-It tests the function of LRGparser.py
-LRGparser.py is tested on python version 3.5.2 and python 2.7.8
+This unit tests the function of LRGparser.py
+LRGparser.py passed all tests on python versions 2.7.8 and 3.5.2.
 
+The current test script assumes you are using python version 3.5.
+If you are using python 2.7, please modify the script accordingly in the following lines:
 
-If you are using python 2.7.8 please change lines 36 and 93, and the boolean at line 56 to 1 to reflect this.
+Line 46 should read:
+actual1, actual2, actual3 = read_file("LRG_7", "url", "2.7")
+
+Line 59, 74, and 85 should read:
+testroot, testgene, testname = read_file("LRG_7", "url", "2.7")
+
+Line 96 should read:
+actual_status = check_status("url", "2.7", "LRG_7")
  
 @authors: Laura Carreto, Rosie Coates-Brown
 
@@ -25,9 +33,9 @@ from LRGparser import get_annotations
 from LRGparser import check_status
 
 def version():
-    version =".".join(map(str, sys.version_info[:3]))
-    if version in {"3.5.2"}:
-        print ("goodnews! you are using a compatible version of python: ", version,)
+    version =".".join(map(str, sys.version_info[:2]))
+    if version in {"3.5", "2.7"}:
+        print ("Goodnews! you are using a compatible version of python: " + version)
     else:
         print (__doc__)
         sys.exit(2)
@@ -43,7 +51,7 @@ class testLRG(unittest.TestCase):
         """tests the read file function by checking the file name generated. 
         this function is required for other tests, which I don't think is ideal.""" 
         #calls the read_rile function from LRGparser.py
-        actual1, actual2, actual3 = read_file("LRG_7", "url", "3.5.2")
+        actual1, actual2, actual3 = read_file("LRG_7", "url", "3.5")
         expected = "LRG_7.xml"
         #asserts if the actual and expected values are not equal
         self.assertEqual(actual3, expected)
@@ -53,7 +61,7 @@ class testLRG(unittest.TestCase):
         """tests the bed_file function is working correctly by checking the strand. 
         This is vital for the correct offset calculation when generating genomic coordinates.
         This function is required for other tests which is not ideal"""
-        testroot, testgene, testname = read_file("LRG_7", "url", "3.5.2")
+        testroot, testgene, testname = read_file("LRG_7", "url", "3.5")
         #calls the bedfile function in LRGparser.py
         actual1, actual2 = bed_file(testroot, testgene)
         expected_str = "-1"
@@ -68,7 +76,7 @@ class testLRG(unittest.TestCase):
         
     def testdiffs(self):
         """tests the get_diffs function by checking the expected diff list is produced for LRG_7"""
-        testroot, testgene, testname = read_file("LRG_7", "url", "3.5.2")
+        testroot, testgene, testname = read_file("LRG_7", "url", "3.5")
         test_exonranges, actual2 = bed_file(testroot, testgene)
 
         expected_list = ['intronic', 'mismatch', '145881', '145881', '13365580', '13365580', 'A', 'G']
@@ -79,7 +87,7 @@ class testLRG(unittest.TestCase):
 
     def testannotation(self):
         """tests the get_annotations function by checking the expected last long name is produced for LRG_7"""
-        testroot, testgene, testname = read_file("LRG_7", "url", "3.5.2")
+        testroot, testgene, testname = read_file("LRG_7", "url", "3.5")
         
 
         expected_name = "calcium voltage-gated channel subunit alpha1 A"
@@ -90,7 +98,7 @@ class testLRG(unittest.TestCase):
     def teststatus(self):
         """tests the check_status function by checking the expected status of LRG_7"""
         
-        actual_status = check_status("url", "3.5.2", "LRG_7")
+        actual_status = check_status("url", "3.5", "LRG_7")
         expected_status = "public"
         
         self.assertEqual(actual_status, expected_status)
