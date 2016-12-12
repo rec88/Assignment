@@ -7,7 +7,7 @@ Tested on python versions 3.5 and 2.7
 
 @authors: Laura Carreto, Rosie Coates-Brown
 
-usage: python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False]
+usage: python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False] -s [file/url]
 
 required parameters:
 -g, --gene    [name of LRG file without .xml suffix]
@@ -49,20 +49,15 @@ def check_status(in_opt, version, genein):
     # open file with LRG status and add key=value pairs to LRG_status dictionary
     #a flow control is required to deal with the difference in modules required for python 2.7 and python 3.5    
     if in_opt == "url":
-        print ("using list_LRGs_GRCh38.txt from: http://ftp.ebi.ac.uk/pub/databases/lrgex/")
+        print ("Using list_LRGs_GRCh38.txt from: http://ftp.ebi.ac.uk/pub/databases/lrgex/")
         
         if version == "3.5":
             from urllib.request import urlretrieve
             status_filename, headers = urlretrieve('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt') 
         elif version == "2.7":
             import urllib2
-            status_filename = urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt')
-    elif in_opt == "file":
-        status_filename = 'list_LRGs_GRCh38.txt'
+            status_file = urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt')
         
-    with open(status_filename, 'r') as status_file:
-
-
         for line in status_file:
             split_line = line.split()
                         
@@ -74,6 +69,22 @@ def check_status(in_opt, version, genein):
             else:
                 LRG_status[split_line[0]] = split_line[2]
                 #print (split_line[0]+ " = " + split_line[2])
+
+    elif in_opt == "file":
+        status_filename = 'list_LRGs_GRCh38.txt'
+        
+        with open(status_filename, 'r') as status_file:
+            for line in status_file:
+                split_line = line.split()
+                        
+                if split_line[2] == 'modified:':             
+                    last_modified = split_line[3]
+                    next
+                elif split_line[1] == 'LRG_ID': # line with headers
+                    next
+                else:
+                    LRG_status[split_line[0]] = split_line[2]
+                    #print (split_line[0]+ " = " + split_line[2])
                 
     # inform user if LRG status is public or pending; exit parser if the latter occurs
     status = LRG_status.get(gene, None)
@@ -104,11 +115,11 @@ def read_file(genein, in_opt, version):
     gene = genein
     
     file_name = gene+'.xml'
-    #file_path = '/home/swc/Desktop/LRGParser/'
+    #file_path = '/home/swc/Desktop/LRGParser/Assignment/'
     file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
     full_path = file_path+file_name
     
-    #get LRG from referecnce file location
+    #get LRG from reference file location
     if in_opt == "file":
         # check if LRG file exists
         try:
@@ -122,8 +133,9 @@ def read_file(genein, in_opt, version):
         
     #Get LRG file form URL (again, flow control required due to different modules required to open urls for py2 and py3)   
     elif in_opt == "url":
-        print ('requesting url:'+ 'http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name)
+        print ('requesting url: '+ 'http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name)
         if version == "2.7":
+            import urllib2
             try: # parse xml and create root object
                 tree = ET.ElementTree(file=urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name))
         
@@ -153,9 +165,10 @@ def write_csv(mylist, myfilename, mode):
     Parameters: mylist (list), myfilename(string), mode (string); the mode options used in the code are: 'a'= append, 'w'=write
     
     """
-    #
-    out = csv.writer(open(myfilename, mode))
-    out.writerow(mylist)
+    with open(myfilename, mode) as csvfile:
+        out = csv.writer(csvfile, quoting=csv.QUOTE_ALL)
+        out.writerow(mylist)
+    csvfile.close()
         
     return
 
@@ -224,13 +237,13 @@ def bed_file(root, gene):
                         
                         exon_ranges[exon_number]=[start_int,end_int]
 
-                        if strand == '1': #CHECK Calculations
+                        if strand == '1': # genomic coordinates calculations
                             gen_start = str(start_int + offset_int)
                             gen_start_int = int(gen_start)
                             gen_end = str(end_int + offset_int + 1) 
                             gen_end_int = int(gen_end)                     
                              
-                        if strand == '-1': #CHECK Calculations
+                        if strand == '-1': # genomic coordinates calculations
                             gen_start = str(offset_int - end_int - 1)
                             gen_start_int = int(gen_start)
                             gen_end = str(offset_int - start_int)
@@ -402,10 +415,10 @@ def versiontest():
     print (version)
     if version in {"3.5", "2.7"}:
         versionbool = 0
-        print ("goodnews! you are using a compatible version of python: ", version,)
+        print ("Goodnews! you are using a compatible version of python: " + version)
     else:
         veresionbool = 1
-        print ("friendly warning: LRGparser has not been on python version ", version)
+        print ("Friendly warning: LRGparser has not been tested on this python version: " + version)
 
     return versionbool, version
 
@@ -463,16 +476,16 @@ def main():
     # create csv file with sequence differences
     if diff == "True":
         diff_list = get_diffs(exon_ranges, gene, root)
-        print ("-d =", diff, " therefore differences file produced")
+        print ("-d =", diff, " therefore differences file requested. The file may not have been produced, if there are no differences to report.")
     else:
-        print ("-d = ", diff, " therefore no differences file produced")
+        print ("-d = ", diff, " therefore no differences file produced.")
 
     # create csv file with annotations for overlaping genes and respective synonyms    
     if info == "True":
         last_ln = get_annotations(gene, root)
-        print ("-i =", info, " therefore annotation file produced")
+        print ("-i =", info, " therefore annotation file produced.")
     else:
-        print ("-i =",  info, "therefore no annotation file produced")
+        print ("-i =",  info, "therefore no annotation file produced.")
         
     
 def usage():
