@@ -54,21 +54,35 @@ def check_status(in_opt, version, genein):
         if version == "3.5":
             from urllib.request import urlretrieve
             status_filename, headers = urlretrieve('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt') 
+            
+            with open(status_filename, 'r') as status_file:
+                for line in status_file:
+                    split_line = line.split()
+                        
+                    if split_line[2] == 'modified:':             
+                        last_modified = split_line[3]
+                        next
+                    elif split_line[1] == 'LRG_ID': # line with headers
+                        next
+                    else:
+                        LRG_status[split_line[0]] = split_line[2]
+                    
+                    
         elif version == "2.7":
             import urllib2
-            status_file = urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt')
+            status_filename = urllib2.urlopen('http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt')
         
-        for line in status_file:
-            split_line = line.split()
+            for line in status_filename:
+                split_line = line.split()
                         
-            if split_line[2] == 'modified:':             
-                last_modified = split_line[3]
-                next
-            elif split_line[1] == 'LRG_ID': # line with headers
-                next
-            else:
-                LRG_status[split_line[0]] = split_line[2]
-                #print (split_line[0]+ " = " + split_line[2])
+                if split_line[2] == 'modified:':             
+                    last_modified = split_line[3]
+                    next
+                elif split_line[1] == 'LRG_ID': # line with headers
+                    next
+                else:
+                    LRG_status[split_line[0]] = split_line[2]
+               
 
     elif in_opt == "file":
         status_filename = 'list_LRGs_GRCh38.txt'
@@ -84,7 +98,7 @@ def check_status(in_opt, version, genein):
                     next
                 else:
                     LRG_status[split_line[0]] = split_line[2]
-                    #print (split_line[0]+ " = " + split_line[2])
+                    
                 
     # inform user if LRG status is public or pending; exit parser if the latter occurs
     status = LRG_status.get(gene, None)
@@ -192,11 +206,8 @@ def bed_file(root, gene):
         # for each branch, get start and end coordinates in the reference genome and chromosome number 
     
         chr = mapping.attrib['other_name'] # chromosome
-        #print (chr)
         ref_start = int(mapping.attrib['other_start']) # start (converted to integer)
-        #print (ref_start)
         ref_end = int(mapping.attrib['other_end']) # end (converted to integer)
-        #print(ref_end)
         
         # account for + or - strand when converting exon lrg coordinates to genomic coordinates
         for mapping_span in mapping:  
@@ -206,12 +217,10 @@ def bed_file(root, gene):
         if strand == '1': # CONFIRM OFFSET
             offset = (ref_start)     # offset genomic start 
             offset_int = int(offset) # convert offset start to integer
-            #print (offset)
             
         elif strand == '-1': # CONFIRM OFFSET 
             offset = (ref_end)        # offset end 
             offset_int = int(offset)  # convert offset start to integer
-            #print (offset)
 
     for id in root.findall("./fixed_annotation/id"):
         id_tag = id.text
@@ -360,7 +369,6 @@ def get_annotations(gene, root):
         
         if gene.attrib.get('source')=='NCBI-Gene':
             NCBI = gene.attrib['accession']
-            #print (NCBI)
             annotation_list.append(NCBI)
         else: #in case no NCBI accession
             annotation_list.append('')
@@ -371,7 +379,6 @@ def get_annotations(gene, root):
                 if branch.attrib.get('source')=='HGNC':
                     HGNC = branch.attrib['name']
                     annotation_list.append(HGNC)
-                    #print (HGNC)
                     
                     #create a synonyms list
                     synonym_list=[]
@@ -379,7 +386,6 @@ def get_annotations(gene, root):
                         synonym_list.append(synonym.text)
                         
                     synonym_string = ', '.join(synonym_list) #convert synonym_list into string to append later into annotation_list as one element
-                    #print ('synonyms= ', synonym_string)
                    
                     
                     
@@ -396,14 +402,12 @@ def get_annotations(gene, root):
                 annotation_list.append(LRG_start)
                 annotation_list.append(LRG_end)
                 annotation_list.append(Strand)
-                #print (LRG_start+'-'+LRG_end+'; strand='+Strand)
                                 
             if branch.tag == 'long_name':
                 ln = branch.text
                 annotation_list.append(ln)
                                     
                 annotation_list.append(synonym_string)
-                #print (annotation_list)
                                     
                 write_csv (annotation_list, annot_file, 'a') #mode 'a' to append to annot_file
                 
@@ -412,7 +416,6 @@ def get_annotations(gene, root):
 def versiontest():
     versionbool = ''
     version =".".join(map(str, sys.version_info[:2]))
-    print (version)
     if version in {"3.5", "2.7"}:
         versionbool = 0
         print ("Goodnews! you are using a compatible version of python: " + version)
