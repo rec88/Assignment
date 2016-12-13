@@ -451,6 +451,9 @@ def main():
         if opt == '-h':
             print (__doc__)
             sys.exit(2)
+        if opt == '--help':
+            print (__doc__)
+            sys.exit(2)
             
         elif opt in ('-g', '--gene'):
             genein = arg
