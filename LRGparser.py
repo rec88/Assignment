@@ -446,7 +446,7 @@ def main():
     
     #parses the command line arguments to check that all flags passed are valid, exits if not
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'h:g:d:a:s:p:', ['help', 'gene=', 'difference=', 'info='])
+        opts, args = getopt.getopt(sys.argv[1:], 'hg:d:a:s:p:', ['help', 'gene=', 'difference=', 'info='])
     except getopt.GetoptError as err:
         print (err)
         usage()
