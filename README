@@ -1,6 +1,6 @@
 LRGparser.py
 
-A set of tools to parse an LRG file and produce a bed file of the exonic sequences, a csv file of the annotation for the gene and any sequence differences between GRC37 and GRC38.
+A set of tools to parse an LRG file and produce a bed file of the exonic sequences, a csv file of the annotation for the gene and any sequence differences between GRCh37 and GRCh38.
 
 For more details about file formats have a look at our wiki, or our example output files.
 
@@ -11,7 +11,7 @@ This script will run with python versions 3.5 and 2.7.
 
 @authors: Laura Carreto, Rosie Coates-Brown
 
-Please contact us for help and requests, we'll do what we can however this script is no longer under active development.
+Please contact us for help and requests; we'll do what we can however this script is no longer under active development.
 
 Usage: python LRGparser.py -g [LRG file name] -d [True/False] -a [True/False] -s [file/url] -p [path to working directory]
 
@@ -29,6 +29,6 @@ NB if you are using locally saved LRG files and list_LRGs_GRCh38.txt these must 
 
 Output:
 [LRG]_t1.bed: a tab separated bed file containing the chromosome number, exon start position, exon end position.
-[LRG]_diffs.csv: a csv file containing the differences between 37 and 38;  -d False will suppress this.
-[LRG]_annotation.csv: a csv file of gene information including synonyms, lsdb, long gene name;  -i False will suppress this.
+[LRG]_diffs.csv: a csv file containing the differences between 37 and 38; -d False will suppress this.
+[LRG]_annotation.csv: a csv file of gene information including synonyms, lsdb, long gene name; -i False will suppress this.
 
