@@ -9,9 +9,6 @@ LRGparser.py passed all tests on python versions 2.7.8 and 3.5.2.
 The current test script assumes you are using python version 3.5.
 If you are using python 2.7, please modify the script accordingly in the following lines:
 
-Line 40 should read:
-if version in {"3.5"}:
-
 Line 46 should read:
 actual1, actual2, actual3 = read_file("LRG_7", "url", "2.7")
 
@@ -37,7 +34,7 @@ from LRGparser import check_status
 
 def version():
     version =".".join(map(str, sys.version_info[:2]))
-    if version in {"3.5"}:
+    if version in ["2.7", "3.5"]:
         print ("Goodnews! you are using a compatible version of python: " + version)
     else:
         print (__doc__)
