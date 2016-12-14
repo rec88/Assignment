@@ -18,6 +18,9 @@ optional parameters:
 -d, --diff, --difference = [True/False] triggers or supresses the output of [LRG]_diffs.csv
 -a, --annotations = [True/False] triggers or suppresses [LRG]_annotation.csv
 -s, --source = [url/file] default is from file. Adding -s url will trigger LRGparser.py grab the xml from http://ftp.ebi.ac.uk/pub/databases/lrgex 
+-p, --path =  defaults to cwd if no path is supplied. Path to your locally downloaded LRG files and list_LRGs_GRCh38.txt file. This can be downloaded from http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt
+
+NB if you are using locally saved LRG files and list_LRGs_GRCh38.txt these must be in the same location
 
 output:
 [LRG]_t1.bed: a tab separated bed file containing the chromosome number, exon start position, exon end position  
@@ -33,7 +36,7 @@ except ImportError:
 import sys, os, csv, getopt
 
 
-def check_status(in_opt, version, genein):
+def check_status(in_opt, refpath, version, genein):
     """
     reads in the list_LRGs_GRCh38.txt file from file or URL and checks the status of the LRG file is public. 
     LRGparser.py doesn't deal with pending files for data integrity
@@ -86,19 +89,24 @@ def check_status(in_opt, version, genein):
                
 
     elif in_opt == "file":
-        status_filename = 'list_LRGs_GRCh38.txt'
-        
-        with open(status_filename, 'r') as status_file:
-            for line in status_file:
-                split_line = line.split()
+        status_filename = refpath+'list_LRGs_GRCh38.txt'
+        print ('using status file:'+status_filename)
+        try:
+            with open(status_filename, 'r') as status_file:
+                for line in status_file:
+                    split_line = line.split()
                         
-                if split_line[2] == 'modified:':             
-                    last_modified = split_line[3]
-                    next
-                elif split_line[1] == 'LRG_ID': # line with headers
-                    next
-                else:
-                    LRG_status[split_line[0]] = split_line[2]
+                    if split_line[2] == 'modified:':             
+                        last_modified = split_line[3]
+                        next
+                    elif split_line[1] == 'LRG_ID': # line with headers
+                        next
+                    else:
+                        LRG_status[split_line[0]] = split_line[2]
+        except:
+            print("couldn't open file... check you have a trailing / in your reference filepath")
+            usage()
+            sys.exit(2)
                     
                 
     # inform user if LRG status is public or pending; exit parser if the latter occurs
@@ -118,7 +126,7 @@ def check_status(in_opt, version, genein):
 
     return status
 
-def read_file(genein, in_opt, version):
+def read_file(genein, in_opt, refpath, version):
     """
     read in the LRG.xml file
     test: does the file exist
@@ -131,7 +139,8 @@ def read_file(genein, in_opt, version):
     
     file_name = gene+'.xml'
     #file_path = '/home/swc/Desktop/LRGParser/Assignment/'
-    file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
+    #file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
+    file_path = refpath
     full_path = file_path+file_name
     
     #get LRG from reference file location
@@ -140,7 +149,7 @@ def read_file(genein, in_opt, version):
         try:
             tree = ET.parse(full_path)
         except:
-            print("couldn't open file... check you have supplied an LRG file name without extension, and file is an XML")
+            print("couldn't open file... check you have supplied an LRG file name without extension, file is an XML, and you have a trailing / in your reference filepath")
             usage()
             sys.exit(2)
     
@@ -437,12 +446,13 @@ def main():
     
     #parses the command line arguments to check that all flags passed are valid, exits if not
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hg:d:i:s:', ['help', 'gene=', 'difference=', 'info='])
+        opts, args = getopt.getopt(sys.argv[1:], 'hg:d:i:s:p:', ['help', 'gene=', 'difference=', 'info='])
     except getopt.GetoptError as err:
         print (err)
         usage()
         sys.exit(2)
     #defines all parameters to allow the possibility of optional arguments
+    refpath = os.getcwd()
     genein = ''
     diff = "false"
     info = "false"
@@ -464,6 +474,9 @@ def main():
             info = arg
         elif opt in ('-s', '--source'):
             in_opt = arg
+        elif opt in ('-p', '--path'):
+            refpath = arg
+            print ('using reference file path:'+refpath)
         else:
             usage()
             sys.exit(2)
@@ -473,10 +486,10 @@ def main():
         usage()
         sys.exit(2)
     
-    status = check_status(in_opt, version, genein)
+    status = check_status(in_opt, refpath, version, genein)
       
     # read xml; function returns root object and variable with gene name
-    root, gene, filename = read_file(genein, in_opt, version)
+    root, gene, filename = read_file(genein, in_opt, refpath, version)
     # create bed file and return dictionary of exon ranges
     exon_ranges, strand = bed_file(root, gene)
 
@@ -501,8 +514,8 @@ def usage():
     """
 
     print ("usage:")
-    print ("python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False] -s [file/url]")
-        
+    print ("python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False] -s [file/url] -p [path to reference files]")
+    print ("NB a trailing / is required if a file path to locally saved LRG files is provided")    
 #runs script if it is run as a script from the command line as opposed to as a function
 if __name__ == "__main__":
     main()
