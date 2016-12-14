@@ -8,7 +8,7 @@ This script will run with python versions 3.5 and 2.7.
 
 @authors: Laura Carreto, Rosie Coates-Brown
 
-usage: python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False] -s [file/url]
+usage: python LRGparser.py -g [LRG file name] -d [True/False] -a [True/False] -s [file/url] -p [path to working directory]
 
 required parameters:
 -g, --gene    [name of LRG file without .xml suffix]
@@ -16,11 +16,11 @@ required parameters:
 optional parameters:
 -h, --help shows this message and quits
 -d, --diff, --difference = [True/False] triggers or supresses the output of [LRG]_diffs.csv
--a, --annotations = [True/False] triggers or suppresses [LRG]_annotation.csv
--s, --source = [url/file] default is from file. Adding -s url will trigger LRGparser.py grab the xml from http://ftp.ebi.ac.uk/pub/databases/lrgex 
+-a, --annot, --annotations = [True/False] triggers or suppresses [LRG]_annotation.csv
+-s, --source = [url/file] default is from file. Adding -s url will trigger LRGparser.py to grab the xml from http://ftp.ebi.ac.uk/pub/databases/lrgex 
 -p, --path =  defaults to cwd if no path is supplied. Path to your locally downloaded LRG files and list_LRGs_GRCh38.txt file. This can be downloaded from http://ftp.ebi.ac.uk/pub/databases/lrgex/list_LRGs_GRCh38.txt
 
-NB if you are using locally saved LRG files and list_LRGs_GRCh38.txt these must be in the same location
+NB if you are using locally saved LRG files and list_LRGs_GRCh38.txt these must be in the same location.
 
 output:
 [LRG]_t1.bed: a tab separated bed file containing the chromosome number, exon start position, exon end position  
@@ -89,8 +89,8 @@ def check_status(in_opt, refpath, version, genein):
                
 
     elif in_opt == "file":
-        status_filename = refpath+'list_LRGs_GRCh38.txt'
-        print ('using status file:'+status_filename)
+        status_filename = refpath+'/list_LRGs_GRCh38.txt'
+        print ('Using status file:'+status_filename)
         try:
             with open(status_filename, 'r') as status_file:
                 for line in status_file:
@@ -104,7 +104,7 @@ def check_status(in_opt, refpath, version, genein):
                     else:
                         LRG_status[split_line[0]] = split_line[2]
         except:
-            print("couldn't open file... check you have a trailing / in your reference filepath")
+            print("Couldn't open file... check if you have a trailing / in your reference filepath; remove it, and try again.")
             usage()
             sys.exit(2)
                     
@@ -112,7 +112,7 @@ def check_status(in_opt, refpath, version, genein):
     # inform user if LRG status is public or pending; exit parser if the latter occurs
     status = LRG_status.get(gene, None)
     if status is None:
-        print ("no such LRG file exists")
+        print ("No such LRG file exists")
         exit(0)
         
     print ("LRG status for " + gene + " : " + status)
@@ -140,7 +140,7 @@ def read_file(genein, in_opt, refpath, version):
     file_name = gene+'.xml'
     #file_path = '/home/swc/Desktop/LRGParser/Assignment/'
     #file_path = '/Users/rosiecoates/Documents/Clinical_bioinformatics_MSc/programming/assignment/'
-    file_path = refpath
+    file_path = refpath+'/'
     full_path = file_path+file_name
     
     #get LRG from reference file location
@@ -149,7 +149,7 @@ def read_file(genein, in_opt, refpath, version):
         try:
             tree = ET.parse(full_path)
         except:
-            print("couldn't open file... check you have supplied an LRG file name without extension, file is an XML, and you have a trailing / in your reference filepath")
+            print("Couldn't open file... check you have supplied an LRG file name without the .xml extension. Check if you have a trailing / in your reference filepath; remove it, and try again.")
             usage()
             sys.exit(2)
     
@@ -157,7 +157,7 @@ def read_file(genein, in_opt, refpath, version):
         
     #Get LRG file form URL (again, flow control required due to different modules required to open urls for py2 and py3)   
     elif in_opt == "url":
-        print ('requesting url: '+ 'http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name)
+        print ('Requesting url: '+ 'http://ftp.ebi.ac.uk/pub/databases/lrgex/'+ file_name)
         if version == "2.7":
             import urllib2
             try: # parse xml and create root object
@@ -426,7 +426,7 @@ def get_annotations(gene, root):
 def versiontest():
     versionbool = ''
     version =".".join(map(str, sys.version_info[:2]))
-    if version in {"3.5", "2.7"}:
+    if version in ["3.5", "2.7"]:
         versionbool = 0
         print ("Goodnews! you are using a compatible version of python: " + version)
     else:
@@ -446,7 +446,7 @@ def main():
     
     #parses the command line arguments to check that all flags passed are valid, exits if not
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hg:d:i:s:p:', ['help', 'gene=', 'difference=', 'info='])
+        opts, args = getopt.getopt(sys.argv[1:], 'h:g:d:a:s:p:', ['help', 'gene=', 'difference=', 'info='])
     except getopt.GetoptError as err:
         print (err)
         usage()
@@ -470,13 +470,13 @@ def main():
             genein = arg
         elif opt in ('-d', '--difference', '-diff'):
             diff = arg
-        elif opt in ('-i', '--information', '--info'):
+        elif opt in ('-a', '--annotation', '--annot'):
             info = arg
         elif opt in ('-s', '--source'):
             in_opt = arg
         elif opt in ('-p', '--path'):
             refpath = arg
-            print ('using reference file path:'+refpath)
+            print ('Using reference file path:'+refpath)
         else:
             usage()
             sys.exit(2)
@@ -496,16 +496,16 @@ def main():
     # create csv file with sequence differences
     if diff == "True":
         diff_list = get_diffs(exon_ranges, gene, root)
-        print ("-d =", diff, " therefore differences file requested. The file may not have been produced, if there are no differences to report.")
+        print ("-d = ", diff, " therefore differences file requested. The file may not have been produced, if there are no differences to report.")
     else:
         print ("-d = ", diff, " therefore no differences file produced.")
 
     # create csv file with annotations for overlaping genes and respective synonyms    
     if info == "True":
         last_ln = get_annotations(gene, root)
-        print ("-i =", info, " therefore annotation file produced.")
+        print ("-a = ", info, " therefore annotation file produced.")
     else:
-        print ("-i =",  info, "therefore no annotation file produced.")
+        print ("-a = ",  info, "therefore no annotation file produced.")
         
     
 def usage():
@@ -514,8 +514,8 @@ def usage():
     """
 
     print ("usage:")
-    print ("python LRGparser.py -g [LRG file name] -d [True/False] -i [True/False] -s [file/url] -p [path to reference files]")
-    print ("NB a trailing / is required if a file path to locally saved LRG files is provided")    
+    print ("python LRGparser.py -g [LRG file name] -d [True/False] -a [True/False] -s [file/url] -p [path to working directory]")
+    print ("NB no trailing / is required when providing a file path to locally saved LRG files.")    
 #runs script if it is run as a script from the command line as opposed to as a function
 if __name__ == "__main__":
     main()
