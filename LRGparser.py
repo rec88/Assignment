@@ -1,9 +1,10 @@
 """
 LRGparser.py
 
-created: November 2016
+Created: 14 December 2016
 
-Tested on python versions 3.5 and 2.7
+Developed and tested on python versions 3.5.2 and 2.7.8, in a Linux/Unix environment.
+This script will run with python versions 3.5 and 2.7.
 
 @authors: Laura Carreto, Rosie Coates-Brown
 
@@ -20,8 +21,8 @@ optional parameters:
 
 output:
 [LRG]_t1.bed: a tab separated bed file containing the chromosome number, exon start position, exon end position  
-[LRG]_diffs.csv: a csv file containing the differences between 37 and 38, False will suppress this
-[LRG]_annotation.csv: a csv file of gene information including synonyms, lsdb, long gene name
+[LRG]_diffs.csv: a csv file containing the differences between 37 and 38; -d False will suppress this.
+[LRG]_annotation.csv: a csv file of gene information including synonyms, lsdb, long gene name; -i False will suppress this.
 
 """
 
