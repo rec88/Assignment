@@ -6,8 +6,8 @@ For more details about file formats have a look at our wiki, or our example outp
 
 Created: 14 December 2016
 
-Tested on python versions 3.5.2 and 2.7.8
-This script will run with python versions 3.5 and 2.7 
+Developed and tested on python versions 3.5.2 and 2.7.8, in a Linux/Unix environment.
+This script will run with python versions 3.5 and 2.7.
 
 @authors: Laura Carreto, Rosie Coates-Brown
 
