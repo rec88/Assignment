@@ -12,14 +12,14 @@ If you are using python 2.7, please modify the script accordingly in the followi
 Line 40 should read:
 if version in ["2.7"]:
 
-Line 46 should read:
-actual1, actual2, actual3 = read_file("LRG_7", "url", "2.7")
+Line 57 should read:
+actual1, actual2, actual3 = read_file("LRG_7", "url", "-", "2.7")
 
-Line 59, 74, and 85 should read:
-testroot, testgene, testname = read_file("LRG_7", "url", "2.7")
+Line 67, 82, and 93 should read:
+testroot, testgene, testname = read_file("LRG_7", "url", "-", "2.7")
 
-Line 96 should read:
-actual_status = check_status("url", "2.7", "LRG_7")
+Line 104 should read:
+actual_status = check_status("url", "-", "2.7", "LRG_7")
  
 @authors: Laura Carreto, Rosie Coates-Brown
 
@@ -54,7 +54,7 @@ class testLRG(unittest.TestCase):
         """tests the read file function by checking the file name generated. 
         this function is required for other tests, which I don't think is ideal.""" 
         #calls the read_rile function from LRGparser.py
-        actual1, actual2, actual3 = read_file("LRG_7", "url", "3.5")
+        actual1, actual2, actual3 = read_file("LRG_7", "url", "-", "3.5")
         expected = "LRG_7.xml"
         #asserts if the actual and expected values are not equal
         self.assertEqual(actual3, expected)
@@ -64,7 +64,7 @@ class testLRG(unittest.TestCase):
         """tests the bed_file function is working correctly by checking the strand. 
         This is vital for the correct offset calculation when generating genomic coordinates.
         This function is required for other tests which is not ideal"""
-        testroot, testgene, testname = read_file("LRG_7", "url", "3.5")
+        testroot, testgene, testname = read_file("LRG_7", "url", "-", "3.5")
         #calls the bedfile function in LRGparser.py
         actual1, actual2 = bed_file(testroot, testgene)
         expected_str = "-1"
@@ -79,7 +79,7 @@ class testLRG(unittest.TestCase):
         
     def testdiffs(self):
         """tests the get_diffs function by checking the expected diff list is produced for LRG_7"""
-        testroot, testgene, testname = read_file("LRG_7", "url", "3.5")
+        testroot, testgene, testname = read_file("LRG_7", "url", "-", "3.5")
         test_exonranges, actual2 = bed_file(testroot, testgene)
 
         expected_list = ['intronic', 'mismatch', '145881', '145881', '13365580', '13365580', 'A', 'G']
@@ -90,7 +90,7 @@ class testLRG(unittest.TestCase):
 
     def testannotation(self):
         """tests the get_annotations function by checking the expected last long name is produced for LRG_7"""
-        testroot, testgene, testname = read_file("LRG_7", "url", "3.5")
+        testroot, testgene, testname = read_file("LRG_7", "url", "-", "3.5")
         
 
         expected_name = "calcium voltage-gated channel subunit alpha1 A"
@@ -101,7 +101,7 @@ class testLRG(unittest.TestCase):
     def teststatus(self):
         """tests the check_status function by checking the expected status of LRG_7"""
         
-        actual_status = check_status("url", "3.5", "LRG_7")
+        actual_status = check_status("url", "-", "3.5", "LRG_7")
         expected_status = "public"
         
         self.assertEqual(actual_status, expected_status)
